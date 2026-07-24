@@ -30,11 +30,13 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
             {item.price} {item.currency}
           </strong>
         </div>
-        <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>{item.description}</p>
-        <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.6 }}>
-          {item.volume}
-          {item.abv !== null ? ` · ${item.abv}%` : ""}
-        </p>
+        {item.description && <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>{item.description}</p>}
+        {(item.volume || item.abv !== null) && (
+          <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.6 }}>
+            {item.volume}
+            {item.abv !== null ? ` · ${item.abv}%` : ""}
+          </p>
+        )}
         <div style={{ marginTop: "0.6rem" }}>
           <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
         </div>
