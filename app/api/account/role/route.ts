@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { GOLD_THRESHOLD, currentCalendarMonth } from "@/lib/roles";
 
 // Текущая роль гостя; для Member — прогресс до Gold в текущем календарном месяце.
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-      { status: 401 },
-    );
-  }
+  const { session, response } = await requireUser();
+  if (response) return response;
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, role: true, goldSinceMonth: true },
+  });
   if (!user) {
     return NextResponse.json(
       { error: { code: "NOT_FOUND", message: "Користувача не знайдено" } },

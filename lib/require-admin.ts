@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
-/** Повертає сесію адміністратора або готову 401/403-відповідь, якщо доступу немає. */
-export async function requireAdmin() {
+/** Повертає сесію залогіненого гостя або готову 401-відповідь, якщо доступу немає. */
+export async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -13,6 +13,13 @@ export async function requireAdmin() {
       ),
     } as const;
   }
+  return { session, response: null } as const;
+}
+
+/** Повертає сесію адміністратора або готову 401/403-відповідь, якщо доступу немає. */
+export async function requireAdmin() {
+  const { session, response } = await requireUser();
+  if (response) return { session: null, response } as const;
   if (!session.user.isAdmin) {
     return {
       session: null,

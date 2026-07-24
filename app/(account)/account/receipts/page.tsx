@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const STATUS_LABEL: Record<string, string> = {
-  REFUNDED: "Повернуто",
-  CANCELLED: "Скасовано",
-};
+import { RECEIPT_STATUS_LABEL } from "@/lib/receipts";
 
 // FR-007, FR-016: история чеков; пусто при первом входе — без ошибки.
 export default async function ReceiptsPage() {
@@ -35,8 +31,8 @@ export default async function ReceiptsPage() {
                 <strong style={{ color: "var(--accent-bright)" }}>
                   {Number(receipt.totalAmount)} {receipt.currency}
                 </strong>
-                {STATUS_LABEL[receipt.status] && (
-                  <span className="text-muted"> · {STATUS_LABEL[receipt.status]}</span>
+                {RECEIPT_STATUS_LABEL[receipt.status] && (
+                  <span className="text-muted"> · {RECEIPT_STATUS_LABEL[receipt.status]}</span>
                 )}
               </Link>
             </li>

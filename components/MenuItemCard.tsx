@@ -8,8 +8,9 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
         display: "flex",
         gap: "1rem",
         border: "1px solid var(--border)",
-        borderRadius: 12,
+        borderRadius: 16,
         padding: "1rem",
+        background: "linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9))",
         contentVisibility: "auto",
         containIntrinsicSize: "128px",
       }}

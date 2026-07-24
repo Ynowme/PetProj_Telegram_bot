@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { posProvider } from "@/lib/pos";
 import { consumeRateLimit } from "@/lib/request-security";
 
-const UNAUTHORIZED = NextResponse.json(
-  { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-  { status: 401 },
-);
-
 // FR-004: гость запрашивает привязку к столу по публичному коду из QR.
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const body = (await request.json()) as { tableCode?: string };
   const tableCode = body.tableCode?.trim();
@@ -69,8 +64,8 @@ export async function POST(request: NextRequest) {
 
 // Текущий статус привязки гостя к столу (нет / ожидает / подтверждена / отклонена).
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const tableSession = await prisma.tableSession.findFirst({
     where: { userId: session.user.id },

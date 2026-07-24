@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/request-security";
 
 // FR-026: Telegram-пользователь без телефона указывает его отдельным шагом.
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-      { status: 401 },
-    );
-  }
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const body = (await request.json()) as { phone?: string };
   const phone = body.phone ? normalizePhone(body.phone) : null;

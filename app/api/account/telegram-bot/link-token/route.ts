@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { issueTelegramBotLinkToken, TelegramBotLinkError } from "@/lib/telegram-bot-link";
 
 // FR-010: доступ к Telegram-боту только для Gold Member с указанным номером телефона.
 // Сам номер подтверждается процессом привязки (FR-012), а не заранее.
 export async function POST() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-      { status: 401 },
-    );
-  }
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   try {
     const { rawToken, expiresAt } = await issueTelegramBotLinkToken(session.user.id);

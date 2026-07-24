@@ -14,9 +14,11 @@ export function currentCalendarMonth(date: Date = new Date()): string {
  * календарный месяц. Не понижает уже присвоенный Gold. Идемпотентна: повторный вызов
  * для уже-Gold гостя не создаёт повторную запись audit log.
  */
-export async function recomputeGoldStatus(userId: string, month: string): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role === "GOLD_MEMBER") return;
+// Возвращает роль гостя после пересчёта — вызывающая сторона (accrueCashbackIfGold) использует
+// её напрямую вместо повторного запроса, в том числе когда апгрейд до Gold произошёл только что.
+export async function recomputeGoldStatus(userId: string, month: string): Promise<"MEMBER" | "GOLD_MEMBER"> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!user || user.role === "GOLD_MEMBER") return user?.role ?? "MEMBER";
 
   const confirmedCount = await prisma.receipt.count({
     where: {
@@ -27,7 +29,7 @@ export async function recomputeGoldStatus(userId: string, month: string): Promis
     },
   });
 
-  if (confirmedCount < GOLD_THRESHOLD) return;
+  if (confirmedCount < GOLD_THRESHOLD) return user.role;
 
   await prisma.user.update({
     where: { id: userId },
@@ -40,4 +42,6 @@ export async function recomputeGoldStatus(userId: string, month: string): Promis
     actor: "SYSTEM",
     metadata: { newRole: "GOLD_MEMBER", month, confirmedCount },
   });
+
+  return "GOLD_MEMBER";
 }

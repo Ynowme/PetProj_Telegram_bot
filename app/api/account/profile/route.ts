@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail, normalizePhone } from "@/lib/request-security";
 
-const UNAUTHORIZED = NextResponse.json(
-  { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-  { status: 401 },
-);
-
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) {
@@ -30,8 +25,8 @@ export async function GET() {
 
 // FR-024: редактирование профиля (имя/email/телефон).
 export async function PATCH(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const body = (await request.json()) as {
     name?: string;

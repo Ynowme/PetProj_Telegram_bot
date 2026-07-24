@@ -1,17 +1,10 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { serializeMenuItem } from "@/lib/menu";
+import { getPopularMenuItems, serializeMenuItem } from "@/lib/menu";
 import { MenuItemCard } from "@/components/MenuItemCard";
-
-const POPULAR_LIMIT = 10;
 
 // FR-021: топ-10 позицій за кількістю лайків; пусто — без помилки.
 export default async function PopularMenuPage() {
-  const items = await prisma.menuItem.findMany({
-    include: { _count: { select: { likes: true } } },
-    orderBy: { likes: { _count: "desc" } },
-    take: POPULAR_LIMIT,
-  });
+  const items = await getPopularMenuItems();
 
   return (
     <main>

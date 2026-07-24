@@ -1,27 +1,20 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getMenuCategories } from "@/lib/menu";
 import { MenuSearch } from "@/components/MenuSearch";
 import { getSiteContent } from "@/lib/site-content";
 
 // FR-001: категорії верхнього рівня з підкатегоріями. FR-003: доступно без входу.
 export default async function MenuPage() {
-  const [categories, siteContent] = await Promise.all([
-    prisma.menuCategory.findMany({
-      where: { parentId: null },
-      orderBy: { order: "asc" },
-      include: { children: { orderBy: { order: "asc" } } },
-    }),
-    getSiteContent(),
-  ]);
+  const [categories, siteContent] = await Promise.all([getMenuCategories(), getSiteContent()]);
 
   return (
-    <main>
+    <main className="menu-page">
       <h1>Меню</h1>
 
       <MenuSearch />
 
       <nav>
-        <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "1.25rem" }}>
+        <ul className="menu-list">
           {categories.map((category) => (
             <li key={category.id} className="category-section">
               <h2>{category.name}</h2>

@@ -52,20 +52,23 @@ export async function importPosReceipt(
     },
   });
 
-  if (countsTowardGoldMonth) {
-    await recomputeGoldStatus(tableSession.userId, month);
-  }
+  // countsTowardGoldMonth пустой ровно когда totalAmount <= 0 — в этом случае accrueCashbackIfGold
+  // всё равно выходит раньше, чем понадобится role, так что здесь она гарантированно определена.
+  const role = countsTowardGoldMonth ? await recomputeGoldStatus(tableSession.userId, month) : undefined;
 
-  await accrueCashbackIfGold(tableSession.userId, receipt.id, payload.totalAmount);
+  await accrueCashbackIfGold(tableSession.userId, receipt.id, payload.totalAmount, role);
 
   return { receiptId: receipt.id, duplicate: false };
 }
 
-async function accrueCashbackIfGold(userId: string, receiptId: string, totalAmount: number): Promise<void> {
+async function accrueCashbackIfGold(
+  userId: string,
+  receiptId: string,
+  totalAmount: number,
+  role: "MEMBER" | "GOLD_MEMBER" | undefined,
+): Promise<void> {
   if (totalAmount <= 0) return;
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (user?.role !== "GOLD_MEMBER") return;
+  if (role !== "GOLD_MEMBER") return;
 
   const percentage = await getBonusPercentage();
   const bonusAmount = Math.round(totalAmount * (percentage / 100) * 100) / 100;

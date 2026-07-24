@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BlurText } from "@/components/BlurText";
 
 export type PromoBanner = { id: string; title: string; description: string | null };
 
@@ -33,6 +34,7 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
 
   return (
     <div
+      className="promo-carousel"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
@@ -62,25 +64,32 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
       />
 
       <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.75rem",
-          minHeight: 84,
-          padding: "0.75rem 1.5rem",
-        }}
+        className="promo-carousel__content"
       >
         {canNavigate && (
           <button type="button" onClick={goPrev} aria-label="Попередня акція">
             ‹
           </button>
         )}
-        <div style={{ flex: 1, textAlign: "center", textShadow: "0 1px 6px rgba(10, 9, 8, 0.9)" }}>
-          <strong style={{ color: "var(--accent-bright)" }}>{banner.title}</strong>
+        <div className="promo-carousel__copy">
+          <span className="promo-carousel__eyebrow">Special offer</span>
+          <BlurText
+            text={banner.title}
+            animateBy="words"
+            direction="top"
+            delay={90}
+            stepDuration={0.28}
+            className="promo-carousel__title"
+          />
           {banner.description ? (
-            <span style={{ color: "var(--foreground)" }}> — {banner.description}</span>
+            <BlurText
+              text={banner.description}
+              animateBy="words"
+              direction="top"
+              delay={45}
+              stepDuration={0.24}
+              className="promo-carousel__description"
+            />
           ) : null}
         </div>
         {canNavigate && (

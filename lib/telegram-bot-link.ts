@@ -67,10 +67,12 @@ async function confirmTelegramBotContactByToken(
     },
   });
 
-  if (!user.phoneVerifiedAt) {
-    await writeAuditLog({ action: "PHONE_VERIFIED", targetUserId: user.id, actor: "SYSTEM" });
-  }
-  await writeAuditLog({ action: "BOT_LINKED", targetUserId: user.id, actor: "SYSTEM" });
+  await Promise.all([
+    user.phoneVerifiedAt
+      ? null
+      : writeAuditLog({ action: "PHONE_VERIFIED", targetUserId: user.id, actor: "SYSTEM" }),
+    writeAuditLog({ action: "BOT_LINKED", targetUserId: user.id, actor: "SYSTEM" }),
+  ]);
 
   return { userId: user.id };
 }

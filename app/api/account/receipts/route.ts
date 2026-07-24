@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 
 // FR-007, FR-016: история чеков; пусто при первом входе — без ошибки.
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-      { status: 401 },
-    );
-  }
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const receipts = await prisma.receipt.findMany({
     where: { userId: session.user.id },

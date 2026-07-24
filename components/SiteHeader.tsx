@@ -2,13 +2,13 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { PromoCarousel } from "@/components/PromoCarousel";
 import { SiteHeaderNav } from "@/components/SiteHeaderNav";
-import type { GooeyNavItem } from "@/components/GooeyNav";
+import type { NavItem } from "@/lib/nav";
 import { getActivePromoBanners } from "@/lib/promo-banners";
 
 export async function SiteHeader() {
   const [session, banners] = await Promise.all([auth(), getActivePromoBanners()]);
 
-  const navItems: GooeyNavItem[] = [
+  const navItems: NavItem[] = [
     { label: "Меню", href: "/menu" },
     { label: "Популярне", href: "/menu/popular" },
     ...(session?.user

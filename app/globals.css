@@ -1,28 +1,28 @@
 :root {
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-playfair: Georgia, "Times New Roman", serif;
-  --background: #0a0908;
-  --background-elevated: #100e0b;
-  --foreground: #f2e9d8;
-  --foreground-muted: #b8ab8f;
+  --background: #090a0c;
+  --background-elevated: #101217;
+  --foreground: #f3f4f6;
+  --foreground-muted: #969ba6;
 
-  --accent: #d4af37;
-  --accent-bright: #f2d47a;
-  --accent-muted: #8a6d23;
-  --accent-contrast: #16110a;
+  --accent: #d9dde5;
+  --accent-bright: #ffffff;
+  --accent-muted: #8a919d;
+  --accent-contrast: #0b0d11;
 
-  --surface: #14120d;
-  --surface-hover: #1d1912;
-  --border: #35301f;
-  --border-strong: #4a3f24;
+  --surface: #121419;
+  --surface-hover: #1a1e25;
+  --border: #292e37;
+  --border-strong: #4a5260;
 
   --danger: #e0685a;
   --success: #7fc97f;
 
-  --color-1: #d4af37;
-  --color-2: #f2d47a;
-  --color-3: #8a6d23;
-  --color-4: #f2e9d8;
+  --color-1: #d9dde5;
+  --color-2: #ffffff;
+  --color-3: #8a919d;
+  --color-4: #f3f4f6;
 
   --font-display: var(--font-playfair);
 }
@@ -40,7 +40,7 @@ body {
 body {
   color: var(--foreground);
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(212, 175, 55, 0.08), transparent),
+    radial-gradient(900px 480px at 50% -10%, rgba(113, 123, 144, 0.16), transparent),
     var(--background);
   background-attachment: fixed, scroll;
   font-family: var(--font-sans);
@@ -56,17 +56,13 @@ h3 {
   color: var(--foreground);
 }
 
-h1 {
-  color: var(--accent-bright);
-}
-
 a {
   color: inherit;
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--accent-bright);
+  color: #fff;
 }
 
 p {
@@ -113,14 +109,14 @@ button:hover {
 }
 
 button[type="submit"] {
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent));
+  background: var(--foreground);
   color: var(--accent-contrast);
   border-color: var(--accent);
   font-weight: 600;
 }
 
 button[type="submit"]:hover {
-  background: linear-gradient(135deg, var(--accent), var(--accent-muted));
+  background: #c4c9d2;
 }
 
 button:disabled {
@@ -148,7 +144,7 @@ button:focus-visible {
 }
 
 .panel {
-  background: var(--surface);
+  background: linear-gradient(145deg, rgba(28, 31, 38, 0.94), rgba(15, 17, 22, 0.94));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.5rem;
@@ -162,7 +158,7 @@ button:focus-visible {
 }
 
 .back-link:hover {
-  color: var(--accent-bright);
+  color: var(--foreground);
 }
 
 .pill {
@@ -176,43 +172,48 @@ button:focus-visible {
 }
 
 .pill:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
   background: var(--surface-hover);
 }
 
 /* Категорії меню — блоки однакового розміру, рівні відступи (T042-редизайн) */
 .category-section {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: linear-gradient(145deg, rgba(27, 30, 37, 0.88), rgba(15, 17, 22, 0.88));
+  border: 1px solid var(--border);
+  border-radius: 18px;
 }
 
 .category-section h2 {
-  margin: 0 0 0.6rem;
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 1.05rem;
 }
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.6rem;
 }
 
 .category-block {
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content: flex-start;
+  text-align: left;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0.85rem 1rem;
-  background: var(--surface);
+  background: rgba(9, 10, 12, 0.48);
   min-height: 52px;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .category-block:hover {
-  border-color: var(--accent);
-  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  background: #20242c;
+  transform: translateY(-1px);
 }
 
 .text-error {
@@ -248,7 +249,7 @@ button:focus-visible {
 }
 
 .menu-layout__sidebar h2 {
-  color: var(--accent-bright);
+  color: var(--foreground);
 }
 
 @media (max-width: 720px) {
@@ -271,7 +272,7 @@ button:focus-visible {
 }
 
 .site-footer__grid h3 {
-  color: var(--accent-bright);
+  color: var(--foreground);
   font-size: 1rem;
 }
 
@@ -293,4 +294,104 @@ button:focus-visible {
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.menu-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.menu-page h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  letter-spacing: -0.04em;
+}
+
+.menu-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-card {
+  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.promo-carousel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #0c0e12;
+  border-bottom: 1px solid var(--border);
+}
+
+.promo-carousel__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 92px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+}
+
+.promo-carousel__copy {
+  grid-column: 2;
+  text-align: center;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.promo-carousel__eyebrow {
+  color: var(--foreground-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.promo-carousel__title {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.promo-carousel__description {
+  margin: 0;
+  color: var(--foreground-muted);
+  font-size: 0.88rem;
+}
+
+.blur-text__segment {
+  display: inline-block;
+  will-change: transform, filter, opacity;
+}
+
+.promo-carousel__content > button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .site-header__nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .promo-carousel__content {
+    padding-inline: 0.75rem;
+  }
 }

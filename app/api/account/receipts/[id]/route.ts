@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 
 // FR-007, FR-011: полный состав чека; чужой чек — 404 (не раскрываем факт существования).
@@ -7,13 +7,8 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-      { status: 401 },
-    );
-  }
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const { id } = await params;
   const receipt = await prisma.receipt.findUnique({ where: { id }, include: { items: true } });

@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { unlinkTelegramBot, TelegramBotLinkError } from "@/lib/telegram-bot-link";
 
-const UNAUTHORIZED = NextResponse.json(
-  { error: { code: "UNAUTHORIZED", message: "Потрібен вхід" } },
-  { status: 401 },
-);
-
 // Текущий статус привязки бота (не показываем сам факт наличия/отсутствия чеков и т.п.).
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -29,8 +24,8 @@ export async function GET() {
 
 // FR-027: отвязка бота по инициативе гостя.
 export async function DELETE() {
-  const session = await auth();
-  if (!session?.user?.id) return UNAUTHORIZED;
+  const { session, response } = await requireUser();
+  if (response) return response;
 
   try {
     await unlinkTelegramBot(session.user.id);

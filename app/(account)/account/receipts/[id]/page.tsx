@@ -2,11 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const STATUS_LABEL: Record<string, string> = {
-  REFUNDED: "Повернуто",
-  CANCELLED: "Скасовано",
-};
+import { RECEIPT_STATUS_LABEL } from "@/lib/receipts";
 
 // FR-007, FR-011: полный состав чека, доступен только владельцу.
 export default async function ReceiptDetailPage({
@@ -28,7 +24,7 @@ export default async function ReceiptDetailPage({
         ← Мої чеки
       </Link>
       <h1>Чек від {new Intl.DateTimeFormat("uk-UA").format(receipt.date)}</h1>
-      {STATUS_LABEL[receipt.status] && <p className="text-muted">{STATUS_LABEL[receipt.status]}</p>}
+      {RECEIPT_STATUS_LABEL[receipt.status] && <p className="text-muted">{RECEIPT_STATUS_LABEL[receipt.status]}</p>}
 
       <div className="panel">
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>

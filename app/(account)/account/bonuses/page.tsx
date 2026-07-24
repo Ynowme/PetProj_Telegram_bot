@@ -14,7 +14,7 @@ export default async function BonusesPage() {
   const [balance, history, user, percentage] = await Promise.all([
     getBonusBalance(session.user.id),
     getBonusHistory(session.user.id),
-    prisma.user.findUnique({ where: { id: session.user.id } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } }),
     getBonusPercentage(),
   ]);
 
