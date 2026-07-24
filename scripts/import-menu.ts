@@ -11,6 +11,10 @@ const MENU_URL =
 // Прибрано з сайту (рішення власника, 2026-07-25) — при повторному імпорті не відновлювати.
 const EXCLUDED_MENU_NAMES = new Set(["Добавки"]);
 
+// Має збігатися з lib/menu.ts PLACEHOLDER_PHOTO_URL — за цим URL MenuItemCard визначає,
+// що в позиції немає реального фото, і показує назву поверх заглушки.
+const PLACEHOLDER_PHOTO_URL = "https://static.shaketopay.com.ua/menu-prod/default-dish.png";
+
 type SourceMenu = { id: number; name: string };
 type SourceCategory = { id: number; name: string; menuId: number };
 type SourceDishVariant = { unit?: string; amount?: number; price: number };
@@ -126,7 +130,7 @@ async function main() {
         description: stripHtml(dish.description),
         price: dish.minPrice,
         currency: "UAH",
-        photoUrl: dish.imageUrl || data.emptyDishImage,
+        photoUrl: dish.imageUrl || PLACEHOLDER_PHOTO_URL,
         volume,
         abv: null,
       },

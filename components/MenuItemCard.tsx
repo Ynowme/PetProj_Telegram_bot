@@ -1,7 +1,9 @@
-import type { SerializedMenuItem } from "@/lib/menu";
+import { PLACEHOLDER_PHOTO_URL, type SerializedMenuItem } from "@/lib/menu";
 import { MenuItemLikeButton } from "@/components/MenuItemLikeButton";
 
 export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
+  const hasNoPhoto = item.photoUrl === PLACEHOLDER_PHOTO_URL;
+
   return (
     <article
       style={{
@@ -15,14 +17,37 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
         containIntrinsicSize: "128px",
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
-      <img
-        src={item.photoUrl}
-        alt={item.name}
-        width={96}
-        height={96}
-        style={{ objectFit: "cover", borderRadius: 8, background: "var(--surface)" }}
-      />
+      <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
+        <img
+          src={item.photoUrl}
+          alt={item.name}
+          width={96}
+          height={96}
+          style={{ objectFit: "cover", borderRadius: 8, background: "var(--surface)" }}
+        />
+        {hasNoPhoto && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              padding: "0.3rem",
+              fontFamily: "var(--font-yeseva)",
+              fontSize: "0.8rem",
+              lineHeight: 1.1,
+              color: "var(--accent-bright)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.8)",
+            }}
+          >
+            {item.name}
+          </span>
+        )}
+      </div>
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
           <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>

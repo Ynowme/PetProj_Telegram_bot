@@ -13,6 +13,12 @@ export default async function MenuPage() {
 
       <MenuSearch />
 
+      <div className="category-grid" style={{ marginTop: "1rem" }}>
+        <Link href="/menu/popular" className="category-block">
+          ★ Популярне
+        </Link>
+      </div>
+
       <nav>
         <ul className="menu-list">
           {categories.map((category) => (
@@ -35,12 +41,6 @@ export default async function MenuPage() {
           ))}
         </ul>
       </nav>
-
-      <div className="category-grid" style={{ marginTop: "1.5rem" }}>
-        <Link href="/menu/popular" className="category-block">
-          ★ Популярне
-        </Link>
-      </div>
 
       {siteContent?.allergyDisclaimer && (
         <p className="text-muted" style={{ marginTop: "1.5rem", fontSize: "0.9rem" }}>

@@ -5,6 +5,10 @@ const POPULAR_LIMIT = 10;
 const NEW_ITEM_DAYS = 30;
 const BAR_CATEGORY_SLUG = "bar";
 
+// Заглушка з імпорту меню (scripts/import-menu.ts) — позиції без реального фото отримують
+// саме цей URL. Використовується, щоб показати назву позиції поверх заглушки (MenuItemCard).
+export const PLACEHOLDER_PHOTO_URL = "https://static.shaketopay.com.ua/menu-prod/default-dish.png";
+
 export function newItemCutoff(): Date {
   const cutoff = new Date();
   cutoff.setUTCDate(cutoff.getUTCDate() - NEW_ITEM_DAYS);
