@@ -25,7 +25,23 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
       />
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-          <h3 style={{ margin: 0 }}>{item.name}</h3>
+          <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {item.name}
+            {item.isNew && (
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: "var(--accent-contrast)",
+                  background: "var(--accent)",
+                  borderRadius: 6,
+                  padding: "0.1rem 0.4rem",
+                }}
+              >
+                Новинка
+              </span>
+            )}
+          </h3>
           <strong>
             {item.price} {item.currency}
           </strong>

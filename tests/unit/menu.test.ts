@@ -34,6 +34,7 @@ describe("serializeMenuItem", () => {
       volume: "300 мл",
       abv: 12.5,
       likesCount: 4,
+      isNew: true,
     });
   });
 

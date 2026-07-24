@@ -8,6 +8,9 @@ const prisma = new PrismaClient();
 const MENU_URL =
   "https://static.shaketopay.com.ua/menu/prod/cache/menu/0c6cbb04-4193-4d98-9c20-27505743356c/uk/menu.json";
 
+// Прибрано з сайту (рішення власника, 2026-07-25) — при повторному імпорті не відновлювати.
+const EXCLUDED_MENU_NAMES = new Set(["Добавки"]);
+
 type SourceMenu = { id: number; name: string };
 type SourceCategory = { id: number; name: string; menuId: number };
 type SourceDishVariant = { unit?: string; amount?: number; price: number };
@@ -83,6 +86,7 @@ async function main() {
 
   const topLevelIdByMenuId = new Map<number, string>();
   for (const [index, menu] of data.menus.entries()) {
+    if (EXCLUDED_MENU_NAMES.has(menu.name)) continue;
     const created = await prisma.menuCategory.create({
       data: { name: menu.name, slug: uniqueSlug(menu.name), parentId: null, order: index },
     });
