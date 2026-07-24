@@ -118,16 +118,19 @@ model BonusTransaction {
 
 ```prisma
 model TelegramBotLinkToken {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique // хранится только хеш, не сырой токен (сам токен — только в URL, одноразово)
-  expiresAt DateTime          // createdAt + 10 минут
-  usedAt    DateTime?
-  createdAt DateTime @default(now())
+  id             String    @id @default(cuid())
+  userId         String
+  tokenHash      String    @unique // хранится только хеш, не сырой токен (сам токен — только в URL, одноразово)
+  telegramChatId String?           // (добавлено 2026-07-24) chat_id, привязанный на /start реального бота — мост
+                                    // между апдейтом /start (есть сырой токен) и апдейтом с contact (только chat_id)
+  expiresAt      DateTime           // createdAt + 10 минут
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([telegramChatId])
 }
 ```
 
@@ -193,7 +196,7 @@ Receipt 1---N BonusTransaction (без изменений из 001, теперь
 2. Создать `TableSession` + enum `TableSessionStatus`; частичный уникальный индекс на `(tableCode)` через raw SQL в migration.sql (Prisma-схема этого не выражает).
 3. Расширить `Receipt`: `source`, `status` (enum'ы), `posExternalId` (unique), `tableSessionId` (FK), `countsTowardGoldMonth`.
 4. Расширить `BonusTransaction`: `type` (строка/enum) + `@@unique([receiptId, type])`.
-5. Создать `TelegramBotLinkToken`.
+5. Создать `TelegramBotLinkToken` (2026-07-24: добавлено поле `telegramChatId` отдельной миграцией `20260723232648_telegram_bot_link_chat_id` для реального бот-адаптера).
 6. Создать `AuditLogEntry` + enum `AuditAction`.
 7. Backfill: у существующих `Receipt` без `source` проставить `MANUAL_ADMIN` (соответствует текущему единственному способу создания чеков); `BonusTransaction.type` backfill в `"ACCRUAL"` для всех существующих записей.
 8. Откат: миграция обратима стандартным способом (все новые поля nullable/с default, кроме `posExternalId unique`, который на существующих строках останется `null`, что допустимо для nullable-unique в Postgres — несколько `null` не конфликтуют с уникальностью).
