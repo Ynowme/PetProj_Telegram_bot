@@ -10,8 +10,9 @@ datasource db {
 }
 
 // --- Пользователь и связанные с аккаунтом сущности (FR-004…FR-011, FR-017, FR-024, FR-026) ---
-// Единственный способ входа — Telegram Login Widget (см. lib/telegram-auth.ts). Сессия — JWT
-// в httpOnly cookie (research.md, п.4), без адаптера Prisma и без хранения паролей/OAuth-аккаунтов.
+// Единственный способ входа — Telegram-бот через deep link (см. lib/telegram-login.ts, FR-004).
+// Сессия — JWT в httpOnly cookie (research.md, п.4), без адаптера Prisma и без хранения
+// паролей/OAuth-аккаунтов.
 
 // Member / Gold Member (specs/002-member-gold-system): роль вычисляется только сервером
 // из подтверждённых POS-чеков (см. lib/roles.ts), понижение Gold -> Member не выполняется.
@@ -193,7 +194,7 @@ model BonusTransaction {
 }
 
 // --- Telegram-бот для Gold Member (specs/002-member-gold-system FR-010…FR-012) ---
-// Сырой токен deep link никогда не хранится — только его SHA-256 хеш (см. lib/telegram-auth.ts
+// Сырой токен deep link никогда не хранится — только его SHA-256 хеш (см. lib/telegram-bot-link.ts
 // для аналогичной техники). Номер телефона в этой таблице не хранится.
 model TelegramBotLinkToken {
   id             String    @id @default(cuid())
@@ -208,6 +209,24 @@ model TelegramBotLinkToken {
 
   @@index([userId])
   @@index([telegramChatId])
+}
+
+// --- Вход через Telegram-бота (замена Login Widget, FR-004) ---
+// Гість тисне "Увійти" → отримує одноразовий токен і t.me/<bot>?start=<token>, це відкриває
+// саме застосунок Telegram (а не веб-версію, як робив oauth-попап Login Widget). Апдейт
+// `/start <token>` вже містить telegram id/ім'я — окремого запиту контакту, як для Gold-бота,
+// не потрібно. Сирий токен не зберігається — тільки його SHA-256 хеш.
+model TelegramLoginToken {
+  id               String    @id @default(cuid())
+  tokenHash        String    @unique
+  telegramUserId   String?
+  telegramUsername String?
+  firstName        String?
+  lastName         String?
+  confirmedAt      DateTime?
+  consumedAt       DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
 }
 
 // --- Audit log (specs/002-member-gold-system) ---

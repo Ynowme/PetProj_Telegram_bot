@@ -2,57 +2,57 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/request-security";
-import { isTelegramAuthPayload, verifyTelegramAuth } from "@/lib/telegram-auth";
+import { consumeTelegramLoginToken, TelegramLoginError } from "@/lib/telegram-login";
 
-// Auth.js: єдиний спосіб входу — Telegram Login Widget, JWT-сесія в httpOnly cookie.
-// Реєстрації/пароля немає — за рішенням власника вхід тільки через Telegram.
+// Auth.js: єдиний спосіб входу — Telegram-бот через deep link (див. lib/telegram-login.ts,
+// FR-004), JWT-сесія в httpOnly cookie. Реєстрації/пароля немає — за рішенням власника
+// вхід тільки через Telegram.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
   // Потрібно, коли сайт відкривається через домен, відмінний від NEXTAUTH_URL
-  // (тунель для локального тесту Telegram-віджета, або продакшн за reverse proxy).
+  // (тунель для локального тесту, або продакшн за reverse proxy).
   trustHost: true,
   pages: {
     signIn: "/login",
   },
   providers: [
     Credentials({
-      id: "telegram",
+      id: "telegram-bot",
       name: "Telegram",
       credentials: {
-        payload: { label: "Telegram payload", type: "text" },
+        token: { label: "Login token", type: "text" },
       },
       async authorize(credentials) {
-        const raw = credentials?.payload;
-        if (typeof raw !== "string") return null;
+        const rawToken = credentials?.token;
+        if (typeof rawToken !== "string" || !rawToken) return null;
 
-        let payload: unknown;
-        try {
-          payload = JSON.parse(raw);
-        } catch {
-          return null;
-        }
-        if (!isTelegramAuthPayload(payload)) return null;
-
-        // Захист від перебору/спаму запитів верифікації (за telegram id).
+        // Захист від перебору/спаму запитів завершення входу (за самим токеном).
         const limit = await consumeRateLimit({
-          namespace: "login:telegram",
-          identifier: String(payload.id),
+          namespace: "login:telegram-bot",
+          identifier: rawToken,
           limit: 10,
           windowMs: 15 * 60_000,
         });
         if (!limit.allowed) return null;
 
-        if (!verifyTelegramAuth(payload, process.env.TELEGRAM_BOT_TOKEN)) return null;
+        let confirmed;
+        try {
+          confirmed = await consumeTelegramLoginToken(rawToken);
+        } catch (error) {
+          if (error instanceof TelegramLoginError) return null;
+          throw error;
+        }
 
-        const telegramId = String(payload.id);
+        const telegramId = confirmed.telegramId;
         const user = await prisma.user.upsert({
           where: { telegramId },
-          update: { telegramUsername: payload.username ?? null },
+          update: { telegramUsername: confirmed.telegramUsername },
           create: {
             telegramId,
-            telegramUsername: payload.username ?? null,
-            name: [payload.first_name, payload.last_name].filter(Boolean).join(" ") || `Гість ${telegramId}`,
+            telegramUsername: confirmed.telegramUsername,
+            name:
+              [confirmed.firstName, confirmed.lastName].filter(Boolean).join(" ") || `Гість ${telegramId}`,
           },
         });
 

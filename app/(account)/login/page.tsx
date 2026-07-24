@@ -1,4 +1,4 @@
-import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { TelegramBotLoginButton } from "@/components/TelegramBotLoginButton";
 
 export default function LoginPage() {
   return (
@@ -10,7 +10,7 @@ export default function LoginPage() {
         </p>
 
         <div style={{ display: "grid", gap: "0.5rem", marginTop: "1rem" }}>
-          <TelegramLoginButton />
+          <TelegramBotLoginButton />
         </div>
       </div>
     </main>

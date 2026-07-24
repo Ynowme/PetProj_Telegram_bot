@@ -7,11 +7,12 @@ import {
   confirmTelegramBotContactByChat,
   TelegramBotConfirmError,
 } from "@/lib/telegram-bot-link";
+import { confirmTelegramLoginStart, isTelegramLoginStartToken } from "@/lib/telegram-login";
 
 type TelegramUpdate = {
   message?: {
     text?: string;
-    from?: { id: number | string };
+    from?: { id: number | string; username?: string; first_name?: string; last_name?: string };
     chat?: { id: number | string };
     contact?: { phone_number: string; user_id?: number | string };
   };
@@ -24,6 +25,9 @@ const LINK_OK_TEXT = "Готово! Бот привʼязано до вашог�
 const LINK_FAILED_TEXT =
   "Не вдалося підтвердити привʼязку. Спробуйте отримати нове посилання в особистому кабінеті на сайті.";
 const CONTACT_MISMATCH_TEXT = "Поділіться, будь ласка, власним номером телефону через кнопку нижче.";
+const LOGIN_OK_TEXT = "Готово! Повертайтеся на сайт — вхід підтверджено.";
+const LOGIN_INVALID_TEXT =
+  "Посилання для входу недійсне або протерміноване. Поверніться на сайт і спробуйте ще раз.";
 
 function isValidUpdate(value: unknown): value is TelegramUpdate {
   return !!value && typeof value === "object";
@@ -92,6 +96,18 @@ export async function POST(request: NextRequest) {
   const startMatch = message.text?.match(/^\/start\s+(\S+)/);
   if (startMatch) {
     const rawToken = startMatch[1];
+
+    if (isTelegramLoginStartToken(rawToken)) {
+      const confirmed = await confirmTelegramLoginStart(rawToken, {
+        telegramUserId: fromId,
+        username: message.from!.username,
+        firstName: message.from!.first_name,
+        lastName: message.from!.last_name,
+      });
+      await sendTelegramMessage({ chatId, text: confirmed ? LOGIN_OK_TEXT : LOGIN_INVALID_TEXT });
+      return NextResponse.json({ ok: true });
+    }
+
     const bound = await bindTelegramBotLinkChat(rawToken, chatId);
     if (!bound) {
       await sendTelegramMessage({ chatId, text: LINK_INVALID_TEXT });

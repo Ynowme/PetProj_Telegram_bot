@@ -14,7 +14,7 @@
 | name | string | обязательно |
 | email | string \| null | уникально, если задан; необязателен — Telegram его не предоставляет, гость может добавить вручную в профиле |
 | phone | string \| null | уникально, если задан; запрашивается отдельным шагом после первого входа (FR-026) |
-| telegramId | string \| null | уникально, если задан; ID из Telegram Login Widget (FR-004/FR-026), единственный способ входа |
+| telegramId | string \| null | уникально, если задан; Telegram user id, полученный при подтверждении входа через бота (FR-004/FR-026), единственный способ входа |
 | telegramUsername | string \| null | опциональный @username из Telegram, для отображения |
 | isAdmin | bool | доступ к `/admin` (см. раздел «Административный инструмент» в spec.md); выставляется вручную в БД |
 | createdAt | datetime | |
@@ -25,7 +25,7 @@
 
 ## Вход через Telegram
 
-Пароля, отдельной формы регистрации и модели `OAuthAccount` (Google/Apple) в системе нет. Вход через Telegram верифицируется без БД-адаптера: `lib/telegram-auth.ts` проверяет HMAC-подпись виджета (`SHA256(bot_token)` как ключ) и свежесть `auth_date` (≤24ч), затем `lib/auth.ts` делает `prisma.user.upsert()` по `telegramId` напрямую на модели `User` — аккаунт создаётся автоматически при первом входе, отдельная связка-таблица не нужна.
+Пароля, отдельной формы регистрации и модели `OAuthAccount` (Google/Apple) в системе нет. Вход выполняется через реального Telegram-бота по deep link (`t.me/<bot>?start=<token>`), чтобы переход всегда открывал приложение Telegram, а не браузерную версию (замена прежнего Login Widget): одноразовый токен хранится в `TelegramLoginToken` (`lib/telegram-login.ts`, только SHA-256 хеш), подтверждается апдейтом `/start` реального бота (`/api/webhooks/telegram-bot/update`), а `lib/auth.ts` после опроса фронтом (`/api/auth/telegram-bot/status`) делает `prisma.user.upsert()` по `telegramId` напрямую на модели `User` — аккаунт создаётся автоматически при первом входе, отдельная связка-таблица не нужна.
 
 ## MenuCategory (Категория / подкатегория меню)
 

@@ -6,7 +6,7 @@
 
 - Node.js LTS (20+)
 - PostgreSQL 15+ (локально или в Docker)
-- Telegram-бот через @BotFather (`TELEGRAM_BOT_TOKEN`, `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`) — единственный способ входа. Без публичного домена (или ngrok) кнопка Telegram-входа показывает заглушку («Telegram ще не налаштований») и войти в кабинет/админку локально не получится.
+- Telegram-бот через @BotFather (`TELEGRAM_BOT_TOKEN`, `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`) — единственный способ входа, по deep link `t.me/<bot>?start=<token>` (FR-004). Без `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` кнопка Telegram-входа показывает заглушку («Telegram ще не налаштований»); без публичного HTTPS-домена (или ngrok) и настроенного `npm run telegram:set-webhook` подтверждение входа от бота не дойдёт и войти в кабинет/админку локально не получится.
 
 ## Настройка
 
@@ -40,7 +40,7 @@ npm run dev
 
 ### User Story 2 — Регистрация и личный кабинет (P2)
 
-1. Войти через Telegram Login Widget на `/login` — аккаунт создаётся автоматически при первом входе (FR-004).
+1. Войти через Telegram-бота на `/login` (кнопка открывает `t.me/<bot>?start=<token>` в приложении Telegram) — аккаунт создаётся автоматически при первом входе (FR-004).
 2. Войти повторно тем же Telegram-аккаунтом → возвращает тот же `User` (по `telegramId`), не создаёт дубликат.
 3. Первый вход в `/account` показывает приветственное поздравление, «Мои чеки» пусты (FR-016).
 4. (Через seed или ручную вставку в БД) добавить пользователю чек с позициями → в `/account/receipts` отображается чек с полным составом (FR-007); должно быть создано соответствующее `BonusTransaction`.

@@ -4,8 +4,8 @@
 
 **Уже реализовано и проверено (тестами и вручную):**
 
-- ✅ Регистрация и вход по email/телефон+паролю полностью удалены по решению владельца — **единственный способ входа/регистрации теперь Telegram Login Widget**. Удалены: `/register`, `/password-reset` страницы и роуты, смена пароля в профиле, `bcryptjs`, `lib/sms-sender.ts`, Turnstile-интеграция, модели `Account`/`Session`/`VerificationToken`/`PasswordResetCode`/`User.passwordHash` в БД (миграция `20260723140000_telegram_only_auth`). Старые демо-аккаунты (`admin@example.com` и реальный `vshalimov251@gmail.com`), созданные через пароль, больше не могут войти — это ожидаемо, см. «Настройка Telegram-бота» ниже про создание нового админ-доступа.
-- ✅ `lib/telegram-auth.ts` верифицирует HMAC-подпись виджета (`SHA256(bot_token)` как ключ) и свежесть `auth_date` (≤24ч), без OAuth-адаптера/redirect-флоу. Rate limiting по Telegram id (`lib/auth.ts`, namespace `login:telegram`) защищает от перебора/спама верификаций.
+- ✅ Регистрация и вход по email/телефон+паролю полностью удалены по решению владельца — **единственный способ входа/регистрации теперь Telegram-бот по deep link**. Удалены: `/register`, `/password-reset` страницы и роуты, смена пароля в профиле, `bcryptjs`, `lib/sms-sender.ts`, Turnstile-интеграция, модели `Account`/`Session`/`VerificationToken`/`PasswordResetCode`/`User.passwordHash` в БД (миграция `20260723140000_telegram_only_auth`). Старые демо-аккаунты (`admin@example.com` и реальный `vshalimov251@gmail.com`), созданные через пароль, больше не могут войти — это ожидаемо, см. «Настройка Telegram-бота» ниже про создание нового админ-доступа.
+- ✅ Вход через реального Telegram-бота (`lib/telegram-login.ts` + `/api/webhooks/telegram-bot/update`) заменил прежний Login Widget: кнопка на `/login` открывает `t.me/<bot>?start=<token>` — это гарантированно открывает приложение Telegram (а не `web.telegram.org`, как иногда делал виджет на мобильных). Апдейт `/start` от бота подтверждает одноразовый токен, фронт поллит `/api/auth/telegram-bot/status`, а `lib/auth.ts` завершает вход через NextAuth-провайдер `telegram-bot`. Rate limiting защищает каждый шаг (`login:telegram-bot:start` по IP, `login:telegram-bot:status` и `login:telegram-bot` по токену, `telegram-bot-update` по Telegram id).
 - ✅ Базовые security headers (`next.config.ts`): `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`.
 - ✅ Тесты: `npm test` (32 unit-теста) и `npm run test:integration` (27 тестов — включая rate limiting, бонусный баланс/ставку, весь Member/Gold-поток) против реальной dev-БД, self-cleaning.
 - ✅ Админ-панель: ставка бонусов, ручное внесение чеков (сам админ-доступ нужно настроить заново через Telegram — см. ниже).
@@ -18,7 +18,7 @@
 - ❌ Оплата чека и чаевых через Google Pay/Apple Pay (Monobank) — сознательно не проектировалась и не реализована, ждёт официальной merchant-документации.
 - ❌ Instagram как альтернативный вход — сознательно отложено: требует Meta App Review и верификации бизнеса, может занять недели без гарантии одобрения для небольшого бара.
 - ❌ Rate limiting не переведён на Redis — при нескольких инстансах приложения (например, за балансировщиком) текущая Postgres-реализация корректна, но не рассчитана на очень высокую частоту запросов.
-- ❌ CSP и HSTS в `next.config.ts` — сознательно не добавлены сейчас, т.к. требуют аккуратной настройки под Telegram-виджет (`telegram.org` скрипт) и встроенную Google-карту, иначе можно сломать сайт.
+- ❌ CSP и HSTS в `next.config.ts` — сознательно не добавлены сейчас, т.к. требуют аккуратной настройки под встроенную Google-карту, иначе можно сломать сайт.
 - ❌ Подтверждение телефона кодом при ручном вводе (FR-026) — поле `phoneVerifiedAt` в схеме есть, логики подтверждения нет; без пароля это уже не вопрос безопасности аккаунта, но актуально для достоверности данных (SMS о бонусах/чеках в будущем).
 - ❌ Хостинг/домен/HTTPS, мониторинг ошибок, резервные копии БД — см. этапы 1, 5, 6 ниже.
 
@@ -37,19 +37,19 @@
 
 ## Текущее состояние и обязательные доработки
 
-Вход выполняется только через Telegram Login Widget — паролей, форм регистрации и SMS-сброса в системе больше нет, что сильно сокращает поверхность атаки (нет брутфорса пароля, нет утечки хешей, нет затрат на SMS). Основной риск теперь — злоупотребление самим Telegram-эндпоинтом (спам верификаций, фиктивные аккаунты) и то, что виджет технически не работает без публичного HTTPS-домена.
+Вход выполняется только через реального Telegram-бота — паролей, форм регистрации и SMS-сброса в системе больше нет, что сильно сокращает поверхность атаки (нет брутфорса пароля, нет утечки хешей, нет затрат на SMS). Основной риск теперь — злоупотребление самим Telegram-эндпоинтом (спам верификаций, фиктивные аккаунты) и то, что вход технически не работает без публичного HTTPS-домена (webhook должен быть доступен Telegram снаружи).
 
 ### 1. Безопасность входа через Telegram
 
-#### 1.1. Верификация подписи
+#### 1.1. Подтверждение токена
 
-- `lib/telegram-auth.ts` уже проверяет HMAC-SHA256 подпись (`timingSafeEqual`, без утечки через тайминг) и свежесть `auth_date` (≤24 часа, защита от replay).
-- `TELEGRAM_BOT_TOKEN` хранить только в production secret manager; без него `verifyTelegramAuth` всегда возвращает `false` (см. код).
-- Домен сайта обязательно привязать к боту через `/setdomain` у @BotFather — Telegram сам не отдаст авторизацию виджету на непривязанном домене.
+- Одноразовый токен входа (`lib/telegram-login.ts`) хранится в БД только в виде SHA-256 хеша, живёт 10 минут и одноразовый — `consumeTelegramLoginToken` атомарно помечает его использованным (`updateMany` с условием `consumedAt: null`).
+- Подтверждается только реальным вебхуком Telegram (`/api/webhooks/telegram-bot/update`), защищённым секретом `TELEGRAM_BOT_UPDATE_SECRET`, сверяемым timing-safe (`verifySecretToken`) — клиент не может подтвердить токен напрямую.
+- `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_UPDATE_SECRET` хранить только в production secret manager.
 
 #### 1.2. Rate limiting
 
-- Уже реализовано: `consumeRateLimit({ namespace: "login:telegram", identifier: telegramId, limit: 10, windowMs: 15 * 60_000 })` в `lib/auth.ts` — 10 попыток верификации на один Telegram id за 15 минут.
+- Уже реализовано на каждом шаге в `lib/request-security.ts`/`consumeRateLimit`: `login:telegram-bot:start` (по IP, выдача токена), `login:telegram-bot:status` (по токену, поллинг фронтом), `login:telegram-bot` (по токену, завершение входа в `lib/auth.ts`), `telegram-bot-update` (по Telegram id, апдейты бота).
 - При нескольких инстансах приложения перевести `RateLimit` таблицу на Redis/Upstash — текущая Postgres-реализация корректна, но не рассчитана на очень высокую частоту запросов.
 
 #### 1.3. Сессии
@@ -68,7 +68,7 @@
 
 ### 3. Безопасность приложения и данных
 
-- Добавить security headers в `next.config.ts`: CSP (с исключением под `telegram.org` для виджета и Google-карту), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors 'none'` или разрешённый список.
+- Добавить security headers в `next.config.ts`: CSP (с исключением под Google-карту), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors 'none'` или разрешённый список.
 - Для state-changing API, работающих с cookie-сессией, проверять `Origin`/`Host` и использовать CSRF-защиту; проверить настройки Auth.js для production URL.
 - Проверить авторизацию на каждом API маршруте, а не только через middleware страниц. Админские маршруты уже должны дополнительно проверяться серверной функцией.
 - Не использовать пользовательский URL изображения без allowlist и валидации; при подключении загрузок ограничить MIME-тип, размер, расширение и сканировать файлы.
@@ -86,16 +86,16 @@
 
 ## Настройка Telegram-бота (обязательно перед запуском)
 
-Вход/регистрация через email/пароль удалены — Telegram Login Widget теперь единственный способ входа. Пока бот не настроен, кнопка входа на `/login` показывает заглушку «Telegram ще не налаштований» — сайт не ломается, но войти в кабинет и в админку никто не может.
+Вход/регистрация через email/пароль удалены — Telegram-бот по deep link теперь единственный способ входа. Пока бот не настроен, кнопка входа на `/login` показывает заглушку «Telegram ще не налаштований» — сайт не ломается, но войти в кабинет и в админку никто не может. В отличие от прежнего Login Widget, для входа не нужен `/setdomain` — но обязателен зарегистрированный webhook (шаги 6–7), т.к. и вход, и привязка бота для Gold Member подтверждаются реальными апдейтами Telegram Bot API.
 
 1. В Telegram написать [@BotFather](https://t.me/BotFather), выполнить `/newbot`, задать имя и username бота (например, `castaneda_bar_bot`).
 2. Скопировать выданный токен в `TELEGRAM_BOT_TOKEN` (production secret manager, не в git), а username бота (без `@`) — в `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`.
-3. Привязать домен сайта командой `/setdomain` в чате с @BotFather (например, `castaneda-bar.com`) — **виджет не работает на `localhost`**, только на публичном домене с HTTPS.
-4. Для локального теста виджета без деплоя — прокинуть `localhost` через ngrok/аналог и указать полученный HTTPS-домен через `/setdomain` временно.
-5. После настройки перезапустить приложение (переменные окружения читаются при старте) и проверить вход через Telegram на `/login`.
-6. Задать `TELEGRAM_BOT_UPDATE_SECRET` (32+ случайных байта, отдельно от других секретов) и убедиться, что `NEXTAUTH_URL` указывает на тот же публичный HTTPS-домен (или временный ngrok-домен для локального теста).
-7. Выполнить `npm run telegram:set-webhook` — зарегистрирует `https://<домен>/api/webhooks/telegram-bot/update` как webhook бота вместе с секретом из шага 6. Скрипт откажется работать, если `NEXTAUTH_URL` указывает на `localhost`.
-8. Проверить: открыть кабинет Gold Member → «Привʼязати Telegram-бота» → перейти по deep link → нажать `/start` в боте → поделиться номером телефона кнопкой — кабинет должен показать бота привязанным.
+3. Для локального теста без деплоя — прокинуть `localhost` через ngrok/аналог, получив публичный HTTPS-домен.
+4. Указать `NEXTAUTH_URL` на публичный HTTPS-домен (production-домен или временный ngrok-домен) и перезапустить приложение (переменные окружения читаются при старте).
+5. Задать `TELEGRAM_BOT_UPDATE_SECRET` (32+ случайных байта, отдельно от других секретов).
+6. Выполнить `npm run telegram:set-webhook` — зарегистрирует `https://<домен>/api/webhooks/telegram-bot/update` как webhook бота вместе с секретом из шага 5. Скрипт откажется работать, если `NEXTAUTH_URL` указывает на `localhost`.
+7. Проверить вход: на `/login` нажать «Увійти через Telegram» → открывается `t.me/<bot>?start=<token>` в приложении Telegram → нажать `/start` в боте — кабинет должен открыться автоматически (фронт поллит подтверждение).
+8. Проверить привязку бота для Gold Member: открыть кабинет Gold Member → «Привʼязати Telegram-бота» → перейти по deep link → нажать `/start` в боте → поделиться номером телефона кнопкой — кабинет должен показать бота привязанным.
 
 ## Админ-доступ
 
@@ -108,7 +108,7 @@
 ## Релизный чек-лист
 
 - [ ] Домен, DNS, HTTPS, CDN/WAF и production URL настроены.
-- [ ] Telegram-бот создан, `TELEGRAM_BOT_TOKEN`/`NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`/`TELEGRAM_BOT_UPDATE_SECRET` заданы в secret manager, домен привязан через `/setdomain`, webhook зарегистрирован (`npm run telegram:set-webhook`).
+- [ ] Telegram-бот создан, `TELEGRAM_BOT_TOKEN`/`NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`/`TELEGRAM_BOT_UPDATE_SECRET` заданы в secret manager, webhook зарегистрирован (`npm run telegram:set-webhook`).
 - [ ] Хотя бы один пользователь вошёл через Telegram и получил `isAdmin: true` (см. «Админ-доступ»).
 - [ ] Rate limit на Telegram-вход покрыт тестами (уже есть, проверить после деплоя вручную).
 - [ ] Телефон нормализуется при заполнении в профиле/`/api/account/phone`.
