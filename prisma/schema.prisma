@@ -43,6 +43,8 @@ model User {
   confirmedSessions  TableSession[]        @relation("TableSessionConfirmedBy")
   telegramBotLinkTokens TelegramBotLinkToken[]
   auditLogEntries    AuditLogEntry[]
+  serviceRequests        ServiceRequest[] @relation("ServiceRequestGuest")
+  handledServiceRequests ServiceRequest[] @relation("ServiceRequestHandledBy")
 
   @@index([role])
 }
@@ -130,6 +132,36 @@ model TableSession {
 
   @@index([tableCode, status])
   @@index([userId])
+}
+
+// --- Послуги для Gold Member (бронювання столу, оренда кальяну) ---
+// Доступ лише для GOLD_MEMBER, перевіряється на сервері (аналогічно доступу до Telegram-бота).
+enum ServiceRequestType {
+  TABLE_BOOKING
+  HOOKAH_RENTAL
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model ServiceRequest {
+  id               String                @id @default(cuid())
+  userId           String
+  type             ServiceRequestType
+  status           ServiceRequestStatus  @default(PENDING)
+  comment          String?
+  requestedAt      DateTime              @default(now())
+  handledAt        DateTime?
+  handledByStaffId String?
+
+  user      User  @relation("ServiceRequestGuest", fields: [userId], references: [id])
+  handledBy User? @relation("ServiceRequestHandledBy", fields: [handledByStaffId], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }
 
 // --- Чеки и бонусы (FR-007, FR-009, FR-010, FR-011, FR-016, FR-025; specs/002 FR-007…FR-017) ---
@@ -239,6 +271,8 @@ enum AuditAction {
   CASHBACK_REVERSED
   BOT_LINKED
   BOT_UNLINKED
+  SERVICE_REQUEST_CONFIRMED
+  SERVICE_REQUEST_REJECTED
 }
 
 model AuditLogEntry {

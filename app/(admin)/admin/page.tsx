@@ -17,6 +17,9 @@ export default function AdminDashboardPage() {
         <Link href="/admin/table-sessions" className="panel">
           Запити на прив&apos;язку до столу
         </Link>
+        <Link href="/admin/service-requests" className="panel">
+          Запити на послуги
+        </Link>
       </nav>
     </main>
   );

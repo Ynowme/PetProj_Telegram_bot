@@ -2,10 +2,13 @@
 // https://core.telegram.org/bots/api#sendmessage
 // Токен только серверный (TELEGRAM_BOT_TOKEN), никогда не логируется и не попадает в клиент.
 
+type InlineLinkButton = { text: string; url: string };
+
 type SendMessageParams = {
   chatId: string | number;
   text: string;
   requestContactButtonText?: string;
+  inlineButtons?: InlineLinkButton[];
 };
 
 export async function sendTelegramMessage(params: SendMessageParams): Promise<void> {
@@ -18,7 +21,9 @@ export async function sendTelegramMessage(params: SendMessageParams): Promise<vo
         resize_keyboard: true,
         one_time_keyboard: true,
       }
-    : { remove_keyboard: true };
+    : params.inlineButtons?.length
+      ? { inline_keyboard: params.inlineButtons.map((button) => [{ text: button.text, url: button.url }]) }
+      : { remove_keyboard: true };
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",

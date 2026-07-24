@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySecretToken } from "@/lib/webhook-security";
 import { consumeRateLimit } from "@/lib/request-security";
+import { prisma } from "@/lib/prisma";
 import { sendTelegramMessage } from "@/lib/telegram-bot-client";
 import {
   bindTelegramBotLinkChat,
@@ -31,6 +32,24 @@ const LOGIN_INVALID_TEXT =
 
 function isValidUpdate(value: unknown): value is TelegramUpdate {
   return !!value && typeof value === "object";
+}
+
+function buildSiteUrl(path: string): string | null {
+  const base = process.env.NEXTAUTH_URL;
+  return base ? `${base.replace(/\/$/, "")}${path}` : null;
+}
+
+// Кнопки під підсумковим повідомленням боту: повернення на сайт завжди, «Послуги» —
+// тільки для Gold Member (єдиних, хто взагалі бачить цю сторінку в кабінеті).
+function buildReturnButtons(includeServices: boolean): { text: string; url: string }[] {
+  const buttons: { text: string; url: string }[] = [];
+  const accountUrl = buildSiteUrl("/account");
+  if (accountUrl) buttons.push({ text: "Повернутися на сайт", url: accountUrl });
+  if (includeServices) {
+    const servicesUrl = buildSiteUrl("/account/services");
+    if (servicesUrl) buttons.push({ text: "Послуги", url: servicesUrl });
+  }
+  return buttons;
 }
 
 // Webhook реальных апдейтов Telegram Bot API (Промт 6). Telegram не подписывает тело —
@@ -81,7 +100,9 @@ export async function POST(request: NextRequest) {
         telegramUserId: fromId,
         phone: message.contact.phone_number,
       });
-      await sendTelegramMessage({ chatId, text: LINK_OK_TEXT });
+      // Привʼязка бота доступна лише Gold Member (issueTelegramBotLinkToken це вимагає) —
+      // кнопка «Послуги» тут завжди доречна.
+      await sendTelegramMessage({ chatId, text: LINK_OK_TEXT, inlineButtons: buildReturnButtons(true) });
     } catch (error) {
       if (error instanceof TelegramBotConfirmError) {
         const text = error.code === "TOKEN_EXPIRED_OR_USED" ? LINK_INVALID_TEXT : LINK_FAILED_TEXT;
@@ -104,7 +125,21 @@ export async function POST(request: NextRequest) {
         firstName: message.from!.first_name,
         lastName: message.from!.last_name,
       });
-      await sendTelegramMessage({ chatId, text: confirmed ? LOGIN_OK_TEXT : LOGIN_INVALID_TEXT });
+      if (confirmed) {
+        // Сесія створюється пізніше (фронт опитує /status), але telegramId — стабільний
+        // ключ, тож для гостя, що вже мав акаунт, роль можна перевірити вже зараз.
+        const existingUser = await prisma.user.findUnique({
+          where: { telegramId: fromId },
+          select: { role: true },
+        });
+        await sendTelegramMessage({
+          chatId,
+          text: LOGIN_OK_TEXT,
+          inlineButtons: buildReturnButtons(existingUser?.role === "GOLD_MEMBER"),
+        });
+      } else {
+        await sendTelegramMessage({ chatId, text: LOGIN_INVALID_TEXT });
+      }
       return NextResponse.json({ ok: true });
     }
 

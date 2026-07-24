@@ -35,6 +35,11 @@ export default async function AccountOverviewPage() {
         <Link href="/account/profile" className="pill">
           Профіль
         </Link>
+        {user?.role === "GOLD_MEMBER" && (
+          <Link href="/account/services" className="pill">
+            Послуги
+          </Link>
+        )}
       </nav>
     </main>
   );
