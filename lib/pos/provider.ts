@@ -4,4 +4,6 @@
 export interface PosProvider {
   /** Проверяет на стороне POS, что стол с этим публичным кодом сейчас открыт. */
   isTableOpen(tableCode: string): Promise<{ open: boolean; posTableExternalId?: string }>;
+  /** Реестр всех столов бара с текущим статусом (для бронювання столу, Промт: Послуги). */
+  listTables(): Promise<{ tableCode: string; open: boolean }[]>;
 }

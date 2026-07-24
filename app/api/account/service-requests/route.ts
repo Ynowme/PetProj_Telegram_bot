@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/request-security";
+import { posProvider } from "@/lib/pos";
 
 const REQUEST_TYPES = ["TABLE_BOOKING", "HOOKAH_RENTAL"] as const;
 type RequestType = (typeof REQUEST_TYPES)[number];
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = (await request.json()) as { type?: string; comment?: string };
+  const body = (await request.json()) as { type?: string; comment?: string; tableCode?: string };
   if (!isRequestType(body.type)) {
     return NextResponse.json(
       { error: { code: "INVALID_INPUT", message: "Невідомий тип послуги" } },
@@ -31,6 +32,31 @@ export async function POST(request: NextRequest) {
     );
   }
   const comment = body.comment?.trim().slice(0, 500) || null;
+
+  const tableCode = body.tableCode?.trim() || null;
+  if (body.type === "TABLE_BOOKING") {
+    if (!tableCode) {
+      return NextResponse.json(
+        { error: { code: "INVALID_INPUT", message: "Оберіть стіл" } },
+        { status: 400 },
+      );
+    }
+    // TOCTOU: стіл міг зайняти хтось інший між завантаженням списку і відправкою форми.
+    const tables = await posProvider.listTables();
+    const table = tables.find((item) => item.tableCode === tableCode);
+    if (!table) {
+      return NextResponse.json(
+        { error: { code: "INVALID_INPUT", message: "Невідомий стіл" } },
+        { status: 400 },
+      );
+    }
+    if (table.open) {
+      return NextResponse.json(
+        { error: { code: "TABLE_NOT_FREE", message: "Цей стіл щойно зайняли, оберіть інший" } },
+        { status: 409 },
+      );
+    }
+  }
 
   const limit = await consumeRateLimit({
     namespace: "service-request",
@@ -46,7 +72,12 @@ export async function POST(request: NextRequest) {
   }
 
   const serviceRequest = await prisma.serviceRequest.create({
-    data: { userId: session.user.id, type: body.type, comment },
+    data: {
+      userId: session.user.id,
+      type: body.type,
+      comment,
+      tableCode: body.type === "TABLE_BOOKING" ? tableCode : null,
+    },
   });
 
   return NextResponse.json({ id: serviceRequest.id, status: serviceRequest.status }, { status: 201 });
@@ -68,6 +99,7 @@ export async function GET() {
       id: item.id,
       type: item.type,
       status: item.status,
+      tableCode: item.tableCode,
       comment: item.comment,
       requestedAt: item.requestedAt,
     })),

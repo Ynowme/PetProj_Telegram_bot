@@ -17,6 +17,7 @@ export async function GET() {
     pending.map((item) => ({
       id: item.id,
       type: item.type,
+      tableCode: item.tableCode,
       comment: item.comment,
       requestedAt: item.requestedAt,
       guest: item.user,

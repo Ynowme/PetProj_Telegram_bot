@@ -8,6 +8,7 @@ type RequestType = "TABLE_BOOKING" | "HOOKAH_RENTAL";
 type PendingRequest = {
   id: string;
   type: RequestType;
+  tableCode: string | null;
   comment: string | null;
   requestedAt: string;
   guest: { id: string; name: string; telegramUsername: string | null; phone: string | null };
@@ -64,7 +65,10 @@ export default function AdminServiceRequestsPage() {
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}
               >
                 <div>
-                  <strong>{TYPE_LABEL[item.type]}</strong>
+                  <strong>
+                    {TYPE_LABEL[item.type]}
+                    {item.tableCode ? ` №${item.tableCode}` : ""}
+                  </strong>
                   <p className="text-muted" style={{ margin: 0 }}>
                     {item.guest.name}
                     {item.guest.telegramUsername ? ` (@${item.guest.telegramUsername})` : ""}

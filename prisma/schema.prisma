@@ -152,6 +152,7 @@ model ServiceRequest {
   userId           String
   type             ServiceRequestType
   status           ServiceRequestStatus  @default(PENDING)
+  tableCode        String?               // лише для TABLE_BOOKING — обраний вільний стіл
   comment          String?
   requestedAt      DateTime              @default(now())
   handledAt        DateTime?
