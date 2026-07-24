@@ -22,24 +22,24 @@ export default async function AccountOverviewPage() {
         </p>
       )}
       {user?.role === "GOLD_MEMBER" && <p className="text-success">Ваш статус: Gold Member ✨</p>}
-      <nav style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap" }}>
-        <Link href="/account/table" className="pill">
+      <nav className="category-grid" style={{ marginTop: "1.5rem" }}>
+        <Link href="/account/table" className="category-block">
           Мій стіл
         </Link>
-        <Link href="/account/receipts" className="pill">
-          Історія чеків
-        </Link>
-        <Link href="/account/bonuses" className="pill">
+        <Link href="/account/bonuses" className="category-block">
           Бонуси
         </Link>
-        <Link href="/account/profile" className="pill">
-          Профіль
+        <Link href="/account/receipts" className="category-block">
+          Історія чеків
         </Link>
         {user?.role === "GOLD_MEMBER" && (
-          <Link href="/account/services" className="pill">
+          <Link href="/account/services" className="category-block">
             Послуги
           </Link>
         )}
+        <Link href="/account/profile" className="category-block">
+          Профіль
+        </Link>
       </nav>
     </main>
   );
