@@ -7,6 +7,7 @@ type StartResponse = { token: string; deepLink: string | null; expiresAt: string
 type StatusResponse = { status: "PENDING" | "CONFIRMED" | "EXPIRED" };
 
 const POLL_INTERVAL_MS = 2000;
+const HINT_DELAY_MS = 15000;
 
 const buttonLinkStyle: CSSProperties = {
   display: "inline-block",
@@ -25,13 +26,20 @@ const buttonLinkStyle: CSSProperties = {
 export function TelegramBotLoginButton() {
   const [deepLink, setDeepLink] = useState<string | null | undefined>(undefined);
   const [status, setStatus] = useState<"idle" | "waiting" | "confirmed" | "expired">("idle");
+  const [showHint, setShowHint] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = () => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
+    }
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = null;
     }
   };
 
@@ -44,6 +52,7 @@ export function TelegramBotLoginButton() {
           return;
         }
         tokenRef.current = data.token;
+        setToken(data.token);
         setDeepLink(data.deepLink);
       })
       .catch(() => setDeepLink(null));
@@ -52,6 +61,7 @@ export function TelegramBotLoginButton() {
   const retry = () => {
     stopPolling();
     setStatus("idle");
+    setShowHint(false);
     setDeepLink(undefined);
     loadToken();
   };
@@ -65,6 +75,8 @@ export function TelegramBotLoginButton() {
     const token = tokenRef.current;
     if (!token) return;
     setStatus("waiting");
+    setShowHint(false);
+    hintTimerRef.current = setTimeout(() => setShowHint(true), HINT_DELAY_MS);
     pollRef.current = setInterval(async () => {
       const response = await fetch(`/api/auth/telegram-bot/status?token=${encodeURIComponent(token)}`);
       if (!response.ok) return;
@@ -115,6 +127,13 @@ export function TelegramBotLoginButton() {
       {status === "waiting" && (
         <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
           Підтвердіть вхід у застосунку Telegram, що відкрився…
+        </p>
+      )}
+      {status === "waiting" && showHint && (
+        <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+          Нічого не відбувається? Якщо посилання відкрилося в браузері замість застосунку
+          Telegram — відкрийте чат з ботом вручну і надішліть команду{" "}
+          <code style={{ userSelect: "all" }}>/start {token}</code>.
         </p>
       )}
       {status === "confirmed" && (

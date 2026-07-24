@@ -185,9 +185,6 @@ export function ServiceRequestsPanel() {
 
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
-      <TableBookingForm onSent={reload} />
-      <HookahRentalForm onSent={reload} />
-
       {history && history.length > 0 && (
         <div className="panel">
           <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>Ваші запити</h2>
@@ -208,6 +205,9 @@ export function ServiceRequestsPanel() {
           </ul>
         </div>
       )}
+
+      <TableBookingForm onSent={reload} />
+      <HookahRentalForm onSent={reload} />
     </div>
   );
 }
