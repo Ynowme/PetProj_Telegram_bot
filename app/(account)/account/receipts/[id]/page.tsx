@@ -21,7 +21,7 @@ export default async function ReceiptDetailPage({
   return (
     <main className="page">
       <Link href="/account/receipts" className="back-link">
-        ← Мої чеки
+        ← Історія чеків
       </Link>
       <h1>Чек від {new Intl.DateTimeFormat("uk-UA").format(receipt.date)}</h1>
       {RECEIPT_STATUS_LABEL[receipt.status] && <p className="text-muted">{RECEIPT_STATUS_LABEL[receipt.status]}</p>}

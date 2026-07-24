@@ -3,9 +3,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 
+type ReceiptItem = { name: string; price: number; quantity: number };
+type Receipt = { id: string; date: string; totalAmount: number; currency: string; items: ReceiptItem[] };
+
 type TableStatus = {
   status: "NONE" | "PENDING_STAFF_CONFIRMATION" | "CONFIRMED" | "REJECTED" | "CLOSED";
   tableCode?: string;
+  receipts?: Receipt[];
 };
 
 const STATUS_LABEL: Record<TableStatus["status"], string> = {
@@ -63,6 +67,46 @@ export default function TablePage() {
         <h1 style={{ marginTop: 0 }}>Прив&apos;язка до столу</h1>
 
         {status && <p className="text-muted">{STATUS_LABEL[status.status]}</p>}
+
+        {status?.status === "CONFIRMED" && (
+          <div style={{ marginTop: "1rem" }}>
+            <h2 style={{ fontSize: "1.1rem" }}>Поточний рахунок</h2>
+            {!status.receipts || status.receipts.length === 0 ? (
+              <p className="text-muted">Ще немає жодного пробитого чека на цей стіл.</p>
+            ) : (
+              <div style={{ display: "grid", gap: "0.75rem" }}>
+                {status.receipts.map((receipt) => (
+                  <div key={receipt.id} className="panel">
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.25rem" }}>
+                      {receipt.items.map((item, index) => (
+                        <li key={index} style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+                          <span>
+                            {item.name}
+                            {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+                          </span>
+                          <span className="text-muted">
+                            {item.price * item.quantity} {receipt.currency}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p style={{ margin: "0.5rem 0 0", textAlign: "right" }}>
+                      <strong>
+                        {receipt.totalAmount} {receipt.currency}
+                      </strong>
+                    </p>
+                  </div>
+                ))}
+                <p style={{ textAlign: "right", margin: 0 }}>
+                  Разом:{" "}
+                  <strong style={{ color: "var(--accent-bright)" }}>
+                    {status.receipts.reduce((sum, r) => sum + r.totalAmount, 0)} {status.receipts[0].currency}
+                  </strong>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {(!status || status.status === "NONE" || status.status === "REJECTED" || status.status === "CLOSED") && (
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.75rem" }}>

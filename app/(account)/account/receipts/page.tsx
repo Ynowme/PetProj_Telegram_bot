@@ -18,7 +18,10 @@ export default async function ReceiptsPage() {
       <Link href="/account" className="back-link">
         ← Кабінет
       </Link>
-      <h1>Мої чеки</h1>
+      <h1 style={{ marginBottom: 0 }}>Історія чеків</h1>
+      <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+        Зберігається 3 місяці
+      </p>
 
       {receipts.length === 0 ? (
         <p className="text-muted">У вас поки немає чеків.</p>

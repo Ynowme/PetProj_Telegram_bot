@@ -143,7 +143,7 @@ async function main() {
       workingHours: "17:00–23:30",
       phone: "+380 66 806 36 29",
       instagramUrl: "https://www.instagram.com/castaneda_smoking_bar/",
-      googleUrl: "https://g.page/example",
+      googleUrl: "https://www.google.com/search?q=Castaneda+Smoking+Bar",
       allergyDisclaimer: "Якщо у вас алергія на певні продукти — попередьте персонал.",
       aboutText: "Затишний бар у центрі міста: класичні коктейлі, шоти та освіжаючі лимонади.",
     },

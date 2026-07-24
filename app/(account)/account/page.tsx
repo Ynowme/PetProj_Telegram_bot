@@ -27,7 +27,7 @@ export default async function AccountOverviewPage() {
           Мій стіл
         </Link>
         <Link href="/account/receipts" className="pill">
-          Мої чеки
+          Історія чеків
         </Link>
         <Link href="/account/bonuses" className="pill">
           Бонуси

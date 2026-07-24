@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
 }
 
 // Текущий статус привязки гостя к столу (нет / ожидает / подтверждена / отклонена).
+// Для CONFIRMED дополнительно отдаём поточний рахунок — чеки, вже пробиті на цю сесію
+// (може накопичуватись кілька за візит, стіл ще не закритий).
 export async function GET() {
   const { session, response } = await requireUser();
   if (response) return response;
@@ -74,11 +76,31 @@ export async function GET() {
 
   if (!tableSession) return NextResponse.json({ status: "NONE" });
 
+  const receipts =
+    tableSession.status === "CONFIRMED"
+      ? await prisma.receipt.findMany({
+          where: { tableSessionId: tableSession.id },
+          orderBy: { date: "asc" },
+          include: { items: true },
+        })
+      : [];
+
   return NextResponse.json({
     id: tableSession.id,
     tableCode: tableSession.tableCode,
     status: tableSession.status,
     requestedAt: tableSession.requestedAt,
     confirmedAt: tableSession.confirmedAt,
+    receipts: receipts.map((receipt) => ({
+      id: receipt.id,
+      date: receipt.date,
+      totalAmount: Number(receipt.totalAmount),
+      currency: receipt.currency,
+      items: receipt.items.map((item) => ({
+        name: item.name,
+        price: Number(item.price),
+        quantity: item.quantity,
+      })),
+    })),
   });
 }

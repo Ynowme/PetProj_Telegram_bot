@@ -109,6 +109,7 @@
 
 - [ ] Домен, DNS, HTTPS, CDN/WAF и production URL настроены.
 - [ ] Telegram-бот создан, `TELEGRAM_BOT_TOKEN`/`NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`/`TELEGRAM_BOT_UPDATE_SECRET` заданы в secret manager, webhook зарегистрирован (`npm run telegram:set-webhook`).
+- [ ] `CRON_SECRET` задан в secret manager — без него плановая очистка старых чеков (`/api/cron/purge-old-receipts`, `vercel.json`) всегда отвечает 401 и ничего не удаляет.
 - [ ] Хотя бы один пользователь вошёл через Telegram и получил `isAdmin: true` (см. «Админ-доступ»).
 - [ ] Rate limit на Telegram-вход покрыт тестами (уже есть, проверить после деплоя вручную).
 - [ ] Телефон нормализуется при заполнении в профиле/`/api/account/phone`.
