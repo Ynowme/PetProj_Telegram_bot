@@ -1,12 +1,16 @@
 // Модель данных для фичи specs/001-bar-menu-account (см. data-model.md)
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
+// pg_trgm — нечёткий поиск по 3-граммам (третий уровень в /api/menu/items),
+// см. миграцию 20260725140000_menu_item_trigram_search.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm]
 }
 
 // --- Пользователь и связанные с аккаунтом сущности (FR-004…FR-011, FR-017, FR-024, FR-026) ---
@@ -90,6 +94,8 @@ model MenuItem {
 
   @@unique([categoryId, name])
   @@index([categoryId])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model MenuItemLike {
