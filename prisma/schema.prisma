@@ -198,6 +198,8 @@ model Receipt {
   bonusTransactions BonusTransaction[]
 
   @@index([userId])
+  @@index([date])
+  @@index([tableSessionId])
 }
 
 model ReceiptItem {

@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export function normalizeEmail(value: string): string {
@@ -23,22 +24,33 @@ export async function consumeRateLimit(options: {
   windowMs: number;
 }): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
   const key = `${options.namespace}:${fingerprint(options.identifier)}`;
-  const now = new Date();
-  const current = await prisma.rateLimit.findUnique({ where: { key } });
 
-  if (!current || now.getTime() - current.windowStartedAt.getTime() >= options.windowMs) {
-    await prisma.rateLimit.upsert({
-      where: { key },
-      create: { key, count: 1, windowStartedAt: now },
-      update: { count: 1, windowStartedAt: now },
-    });
-    return { allowed: true, retryAfterSeconds: Math.ceil(options.windowMs / 1000) };
-  }
+  // Атомарний INSERT ... ON CONFLICT замість findUnique + окремого upsert/update: два
+  // одночасні запити раніше могли прочитати той самий count до будь-якого запису і
+  // обидва пройти перевірку ліміту (TOCTOU) — тепер інкремент і скидання вікна
+  // відбуваються одним SQL-запитом під блокуванням рядка.
+  const rows = await prisma.$queryRaw<{ count: number; windowStartedAt: Date }[]>(Prisma.sql`
+    INSERT INTO "RateLimit" ("key", "count", "windowStartedAt", "updatedAt")
+    VALUES (${key}, 1, now(), now())
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE
+        WHEN "RateLimit"."windowStartedAt" <= now() - (${options.windowMs} * INTERVAL '1 millisecond')
+        THEN 1
+        ELSE "RateLimit"."count" + 1
+      END,
+      "windowStartedAt" = CASE
+        WHEN "RateLimit"."windowStartedAt" <= now() - (${options.windowMs} * INTERVAL '1 millisecond')
+        THEN now()
+        ELSE "RateLimit"."windowStartedAt"
+      END,
+      "updatedAt" = now()
+    RETURNING "count", "windowStartedAt"
+  `);
 
-  const updated = await prisma.rateLimit.update({
-    where: { key },
-    data: { count: { increment: 1 } },
-  });
-  const retryAfterSeconds = Math.max(1, Math.ceil((current.windowStartedAt.getTime() + options.windowMs - now.getTime()) / 1000));
-  return { allowed: updated.count <= options.limit, retryAfterSeconds };
+  const row = rows[0];
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((row.windowStartedAt.getTime() + options.windowMs - Date.now()) / 1000),
+  );
+  return { allowed: row.count <= options.limit, retryAfterSeconds };
 }

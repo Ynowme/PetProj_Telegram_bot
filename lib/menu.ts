@@ -2,6 +2,7 @@ import type { MenuItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const POPULAR_LIMIT = 10;
+const NEW_ITEMS_LIMIT = 30;
 const NEW_ITEM_DAYS = 30;
 const BAR_CATEGORY_SLUG = "bar";
 
@@ -36,6 +37,7 @@ export async function getPopularMenuItems() {
       where: { ...whereBar, createdAt: { gte: newItemCutoff() } },
       include: { _count: { select: { likes: true } } },
       orderBy: { createdAt: "desc" },
+      take: NEW_ITEMS_LIMIT,
     }),
   ]);
 

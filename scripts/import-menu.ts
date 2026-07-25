@@ -110,8 +110,8 @@ async function main() {
     subCategoryIdBySourceId.set(category.id, created.id);
   }
 
-  let created = 0;
   let skipped = 0;
+  const dishRows = [];
   for (const dish of data.dishes) {
     const categoryId = subCategoryIdBySourceId.get(dish.categoryId);
     if (!categoryId) {
@@ -123,22 +123,23 @@ async function main() {
     const firstVariant = dish.dishVariants[0];
     const volume = firstVariant?.unit && firstVariant?.amount ? `${firstVariant.amount} ${firstVariant.unit}` : "";
 
-    await prisma.menuItem.create({
-      data: {
-        categoryId,
-        name: dish.title.trim(),
-        description: stripHtml(dish.description),
-        price: dish.minPrice,
-        currency: "UAH",
-        photoUrl: dish.imageUrl || PLACEHOLDER_PHOTO_URL,
-        volume,
-        abv: null,
-      },
+    dishRows.push({
+      categoryId,
+      name: dish.title.trim(),
+      description: stripHtml(dish.description),
+      price: dish.minPrice,
+      currency: "UAH",
+      photoUrl: dish.imageUrl || PLACEHOLDER_PHOTO_URL,
+      volume,
+      abv: null,
     });
-    created += 1;
   }
 
-  console.log(`Imported ${created} dishes (${skipped} skipped).`);
+  // Жоден рядок не потребує id, згенерованого попереднім — на відміну від категорій,
+  // усі 148+ страв можна вставити одним запитом замість послідовних create() у циклі.
+  const { count } = await prisma.menuItem.createMany({ data: dishRows });
+
+  console.log(`Imported ${count} dishes (${skipped} skipped).`);
 }
 
 main()

@@ -10,6 +10,7 @@ export async function GET() {
   const pending = await prisma.serviceRequest.findMany({
     where: { status: "PENDING" },
     orderBy: { requestedAt: "asc" },
+    take: 100,
     include: { user: { select: { id: true, name: true, telegramUsername: true, phone: true } } },
   });
 

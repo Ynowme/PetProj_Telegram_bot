@@ -40,11 +40,12 @@ export async function confirmTelegramLoginStart(
   rawToken: string,
   params: { telegramUserId: string; username?: string; firstName?: string; lastName?: string },
 ): Promise<boolean> {
-  const token = await prisma.telegramLoginToken.findUnique({ where: { tokenHash: hashToken(rawToken) } });
-  if (!token || token.consumedAt || token.expiresAt.getTime() < Date.now()) return false;
-
-  await prisma.telegramLoginToken.update({
-    where: { id: token.id },
+  // Один атомарний updateMany з guard'ом на confirmedAt/consumedAt/expiresAt замість
+  // findUnique+update: без нього повторна доставка `/start` (Telegram-ретрай, або друге
+  // натискання deep link) з іншим telegram id могла б тихо переписати вже підтверджений
+  // токен чужою особою, поки фронт усе ще опитує /status.
+  const claimed = await prisma.telegramLoginToken.updateMany({
+    where: { tokenHash: hashToken(rawToken), consumedAt: null, confirmedAt: null, expiresAt: { gt: new Date() } },
     data: {
       telegramUserId: params.telegramUserId,
       telegramUsername: params.username ?? null,
@@ -53,7 +54,7 @@ export async function confirmTelegramLoginStart(
       confirmedAt: new Date(),
     },
   });
-  return true;
+  return claimed.count > 0;
 }
 
 export type TelegramLoginStatus = "PENDING" | "CONFIRMED" | "EXPIRED";

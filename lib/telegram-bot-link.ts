@@ -57,7 +57,14 @@ async function confirmTelegramBotContactByToken(
     throw new TelegramBotConfirmError("LINK_FAILED");
   }
 
-  await prisma.telegramBotLinkToken.update({ where: { id: token.id }, data: { usedAt: new Date() } });
+  // Атомарне "захоплення" токена — Telegram повторно доставляє той самий апдейт при
+  // неоднозначній відповіді, тож без guard'а usedAt: null дві паралельні доставки
+  // того самого підтвердження могли б обидві пройти й подвоїти update/audit log нижче.
+  const claimed = await prisma.telegramBotLinkToken.updateMany({
+    where: { id: token.id, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  if (claimed.count === 0) throw new TelegramBotConfirmError("TOKEN_EXPIRED_OR_USED");
 
   await prisma.user.update({
     where: { id: user.id },
