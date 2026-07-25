@@ -409,14 +409,10 @@ button:focus-visible {
     padding: 0.75rem 1rem;
   }
 
-  /* Кнопки хедера перечнем по вертикалі — інакше вони обгортались впритул до лого. */
+  /* Окремий рядок під лого — горизонтальний, з переносом, а не впритул до лого. */
   .site-header__nav {
-    flex-direction: column;
     width: 100%;
-  }
-
-  .site-header__nav .specular-button {
-    width: 100%;
+    justify-content: center;
   }
 
   .promo-carousel__content {
