@@ -232,6 +232,7 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
                 position: "absolute",
                 top: "0.75rem",
                 right: "0.75rem",
+                zIndex: 1,
                 width: 36,
                 height: 36,
                 padding: 0,
