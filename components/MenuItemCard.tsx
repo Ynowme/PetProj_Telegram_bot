@@ -25,7 +25,14 @@ function DescriptionClamp({ text }: { text: string }) {
     return (
       <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>
         {text}{" "}
-        <button type="button" onClick={() => setExpanded(false)} style={toggleLinkStyle}>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpanded(false);
+          }}
+          style={toggleLinkStyle}
+        >
           сховати
         </button>
       </p>
@@ -44,7 +51,14 @@ function DescriptionClamp({ text }: { text: string }) {
       }}
     >
       {text}{" "}
-      <button type="button" onClick={() => setExpanded(true)} style={toggleLinkStyle}>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded(true);
+        }}
+        style={toggleLinkStyle}
+      >
         показати
       </button>
     </p>
@@ -118,6 +132,16 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
   return (
     <>
       <article
+        role="button"
+        tabIndex={0}
+        aria-label={`Показати ${item.name} детальніше`}
+        onClick={() => setIsOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
         style={{
           display: "flex",
           gap: "1rem",
@@ -127,21 +151,10 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
           background: "linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9))",
           contentVisibility: "auto",
           containIntrinsicSize: "128px",
+          cursor: "pointer",
         }}
       >
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={`Показати ${item.name} детальніше`}
-          onClick={() => setIsOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setIsOpen(true);
-            }
-          }}
-          style={{ position: "relative", width: 96, height: 96, flexShrink: 0, cursor: "pointer" }}
-        >
+        <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
           <img
             src={item.photoUrl}
@@ -174,7 +187,7 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
           </div>
           {item.description && <DescriptionClamp text={item.description} />}
           <VolumeAbvLine item={item} />
-          <div style={{ marginTop: "0.6rem" }}>
+          <div style={{ marginTop: "0.6rem" }} onClick={(event) => event.stopPropagation()}>
             <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
           </div>
         </div>
