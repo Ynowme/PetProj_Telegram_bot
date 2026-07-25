@@ -138,7 +138,8 @@ async function main() {
     create: {
       id: "default",
       address: "вул. Покровська, 20, Суми, Україна",
-      addressMapUrl: "https://maps.google.com/?q=вул.+Покровська+20+Суми",
+      addressMapUrl:
+        "https://www.google.com/maps/place/Castaneda+smoking+bar/@50.9052816,34.7892893,17z/data=!3m1!4b1!4m6!3m5!1s0x412901bb22712393:0x42b7e127ce015dcf!8m2!3d50.9052782!4d34.7918696!16s%2Fg%2F11gnrlt0qy",
       mapEmbedUrl: "https://maps.google.com/maps?q=вул.+Покровська+20+Суми&output=embed",
       workingHours: "17:00–23:30",
       phone: "+380 66 806 36 29",

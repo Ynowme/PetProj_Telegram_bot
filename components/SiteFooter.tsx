@@ -55,6 +55,27 @@ export async function SiteFooter() {
             style={{ border: "1px solid var(--border)", borderRadius: 8 }}
             loading="lazy"
           />
+          {siteContent.addressMapUrl && (
+            <a
+              href={siteContent.addressMapUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                marginTop: "0.6rem",
+                padding: "0.6rem 1rem",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                color: "inherit",
+              }}
+            >
+              <span aria-hidden>🧭</span>
+              Отримати розташування
+            </a>
+          )}
         </div>
       </div>
     </footer>
