@@ -40,17 +40,27 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
               fontFamily: "var(--font-yeseva)",
               fontSize: "0.8rem",
               lineHeight: 1.1,
-              color: "var(--accent-bright)",
-              textShadow: "0 1px 3px rgba(0, 0, 0, 0.8)",
+              color: "#000",
+              textShadow: "0 0 4px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.6)",
             }}
           >
             {item.name}
           </span>
         )}
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-          <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+          <h3
+            style={{
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              minWidth: 0,
+              overflowWrap: "break-word",
+            }}
+          >
             {item.name}
             {item.isNew && (
               <span
@@ -67,7 +77,7 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
               </span>
             )}
           </h3>
-          <strong>
+          <strong style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
             {item.price} {item.currency}
           </strong>
         </div>

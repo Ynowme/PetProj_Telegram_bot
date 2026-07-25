@@ -19,7 +19,7 @@ export function SiteHeaderNav({ items }: { items: NavItem[] }) {
   };
 
   return (
-    <nav style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+    <nav className="site-header__nav">
       {items.map((item, index) => (
         <SpecularButton
           key={`${item.href}-${item.label}`}

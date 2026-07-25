@@ -22,14 +22,7 @@ export async function SiteHeader() {
 
   return (
     <header style={{ borderBottom: "1px solid var(--border)" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0.75rem 1.5rem",
-        }}
-      >
+      <div className="site-header__bar">
         <Link href="/" style={{ display: "inline-flex" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- статичний line-art бейдж */}
           <img src="/logo.svg" alt="CASTANEDA smoking bar" width={48} height={48} />
