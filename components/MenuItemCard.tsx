@@ -234,16 +234,29 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
                 right: "0.75rem",
                 width: 36,
                 height: 36,
+                padding: 0,
                 borderRadius: "50%",
                 border: "none",
-                background: "var(--accent)",
-                color: "var(--accent-contrast)",
-                fontSize: "1.1rem",
-                lineHeight: 1,
+                background: "transparent",
+                color: "#fff",
                 cursor: "pointer",
+                filter: "drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6))",
               }}
             >
-              ×
+              <svg
+                viewBox="0 0 24 24"
+                width="100%"
+                height="100%"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="8" y1="8" x2="16" y2="16" />
+                <line x1="16" y1="8" x2="8" y2="16" />
+              </svg>
             </button>
 
             <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
