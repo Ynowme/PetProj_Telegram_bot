@@ -14,7 +14,7 @@ export default async function HomePage() {
           alignItems: "flex-end",
           backgroundImage: "url(/hero-bar.jpg)",
           backgroundSize: "cover",
-          backgroundPosition: "center 35%",
+          backgroundPosition: "center",
         }}
       >
         <div
@@ -55,7 +55,7 @@ export default async function HomePage() {
               lineHeight: 1.15,
             }}
           >
-            Місце, куди хочеться повертатися
+            Місце, куди хочеться повертатися знову і знову
           </h1>
         </div>
       </div>
