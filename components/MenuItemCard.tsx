@@ -4,6 +4,53 @@ import { useEffect, useState } from "react";
 import { PLACEHOLDER_PHOTO_URL, type SerializedMenuItem } from "@/lib/menu";
 import { MenuItemLikeButton } from "@/components/MenuItemLikeButton";
 
+const toggleLinkStyle = {
+  background: "none",
+  border: "none",
+  padding: 0,
+  margin: 0,
+  font: "inherit",
+  fontWeight: 600,
+  color: "var(--accent-bright)",
+  cursor: "pointer",
+} as const;
+
+// Опис у списку — обрізаний до 2 рядків з інлайновою кнопкою "показати" в кінці, щоб
+// картки в списку були однакової висоти незалежно від довжини опису (на відміну від
+// модалки з фото, де опис завжди показується повністю).
+function DescriptionClamp({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (expanded) {
+    return (
+      <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>
+        {text}{" "}
+        <button type="button" onClick={() => setExpanded(false)} style={toggleLinkStyle}>
+          сховати
+        </button>
+      </p>
+    );
+  }
+
+  return (
+    <p
+      style={{
+        margin: "0.4rem 0",
+        opacity: 0.8,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+      }}
+    >
+      {text}{" "}
+      <button type="button" onClick={() => setExpanded(true)} style={toggleLinkStyle}>
+        показати
+      </button>
+    </p>
+  );
+}
+
 function VolumeAbvLine({ item }: { item: SerializedMenuItem }) {
   if (!item.volume && item.abv === null) return null;
   return (
@@ -125,7 +172,7 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
               {item.price} {item.currency}
             </strong>
           </div>
-          {item.description && <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>{item.description}</p>}
+          {item.description && <DescriptionClamp text={item.description} />}
           <VolumeAbvLine item={item} />
           <div style={{ marginTop: "0.6rem" }}>
             <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
