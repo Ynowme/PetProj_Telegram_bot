@@ -1,17 +1,15 @@
 import Link from "next/link";
 import { getMenuCategories } from "@/lib/menu";
-import { MenuSearch } from "@/components/MenuSearch";
 import { getSiteContent } from "@/lib/site-content";
 
 // FR-001: категорії верхнього рівня з підкатегоріями. FR-003: доступно без входу.
+// Пошук тепер рендериться в menu/layout.tsx (спільний для всіх сторінок розділу).
 export default async function MenuPage() {
   const [categories, siteContent] = await Promise.all([getMenuCategories(), getSiteContent()]);
 
   return (
     <main className="menu-page">
       <h1>Меню</h1>
-
-      <MenuSearch />
 
       <div className="category-grid" style={{ marginTop: "1rem" }}>
         <Link href="/menu/popular" className="category-block">

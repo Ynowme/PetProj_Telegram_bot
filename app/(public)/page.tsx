@@ -1,8 +1,10 @@
+import Link from "next/link";
+import { auth } from "@/lib/auth";
 import { getSiteContent } from "@/lib/site-content";
 
 // FR-014: короткий опис концепції закладу на головній сторінці.
 export default async function HomePage() {
-  const siteContent = await getSiteContent();
+  const [siteContent, session] = await Promise.all([getSiteContent(), auth()]);
 
   return (
     <main>
@@ -57,6 +59,15 @@ export default async function HomePage() {
           >
             Місце, куди хочеться повертатися знову і знову
           </h1>
+
+          <div className="hero-cta">
+            <Link href="/menu" className="pill pill--accent">
+              Переглянути меню
+            </Link>
+            <Link href={session?.user ? "/account" : "/login"} className="pill">
+              {session?.user ? "Особистий кабінет" : "Увійти"}
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -73,6 +84,24 @@ export default async function HomePage() {
         >
           {siteContent.aboutText}
         </p>
+      )}
+
+      {siteContent && (
+        <div
+          className="panel"
+          style={{
+            maxWidth: 420,
+            margin: "0 auto 3rem",
+            textAlign: "center",
+            display: "grid",
+            gap: "0.5rem",
+          }}
+        >
+          <a href={siteContent.addressMapUrl} target="_blank" rel="noreferrer">
+            📍 {siteContent.address}
+          </a>
+          <p style={{ margin: 0, color: "var(--foreground-muted)" }}>🕐 {siteContent.workingHours}</p>
+        </div>
       )}
     </main>
   );
