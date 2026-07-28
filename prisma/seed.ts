@@ -156,6 +156,12 @@ async function main() {
     create: { id: "default", percentage: 3 },
   });
 
+  // Столи CastaPOS — ті самі коди "1".."10", що й лишалися хардкоджені в lib/pos/fake-provider.ts.
+  const tableCodes = Array.from({ length: 10 }, (_, i) => String(i + 1));
+  for (const code of tableCodes) {
+    await prisma.posTable.upsert({ where: { code }, update: {}, create: { code } });
+  }
+
   // Адмін-акаунт не сідиться заздалегідь: єдиний спосіб входу — Telegram, тому
   // акаунт з'являється сам після першого входу власника через /login, а потім
   // isAdmin виставляється вручну в БД (див. docs/production-readiness.md).

@@ -2,27 +2,33 @@ import { prisma } from "@/lib/prisma";
 import { recomputeGoldStatus, currentCalendarMonth } from "@/lib/roles";
 import { getBonusPercentage } from "@/lib/bonus-settings";
 import { writeAuditLog } from "@/lib/audit-log";
+import { normalizePhone } from "@/lib/request-security";
 
 export type PosReceiptItemInput = { name: string; price: number; quantity: number };
 
+// Рівно одне з двох — гостя визначено або через активну сесію столу (веб/Telegram-флоу),
+// або (CastaPOS: коли гість не лінкував стіл через сайт) через його телефон, той самий
+// пошук, що й у /api/admin/receipts для ручного внесення чека.
 export type PosReceiptPayload = {
   posExternalId: string;
-  tableSessionId: string;
+  tableSessionId?: string;
+  guestPhone?: string;
   date: string;
   totalAmount: number;
   items: PosReceiptItemInput[];
 };
 
 export class ReceiptImportError extends Error {
-  constructor(public code: "TABLE_SESSION_NOT_CONFIRMED" | "RECEIPT_NOT_FOUND") {
+  constructor(public code: "TABLE_SESSION_NOT_CONFIRMED" | "RECEIPT_NOT_FOUND" | "GUEST_NOT_FOUND") {
     super(code);
   }
 }
 
 /**
- * Импортирует чек, пришедший от POS по подтверждённой сессии стола (FR-004…FR-006, FR-014).
- * Идемпотентна по posExternalId (FR-015, SC-006) — повторная доставка не создаёт дубликат.
- * Чеки с суммой <= 0 не учитываются в подсчёте Gold и не порождают cashback (Edge Case).
+ * Импортирует чек, пришедший от POS по подтверждённой сессии стола или по телефону гостя
+ * (FR-004…FR-006, FR-014). Идемпотентна по posExternalId (FR-015, SC-006) — повторная доставка
+ * не создаёт дубликат. Чеки с суммой <= 0 не учитываются в подсчёте Gold и не порождают cashback
+ * (Edge Case).
  */
 export async function importPosReceipt(
   payload: PosReceiptPayload,
@@ -30,9 +36,21 @@ export async function importPosReceipt(
   const existing = await prisma.receipt.findUnique({ where: { posExternalId: payload.posExternalId } });
   if (existing) return { receiptId: existing.id, duplicate: true };
 
-  const tableSession = await prisma.tableSession.findUnique({ where: { id: payload.tableSessionId } });
-  if (!tableSession || tableSession.status !== "CONFIRMED") {
-    throw new ReceiptImportError("TABLE_SESSION_NOT_CONFIRMED");
+  let userId: string;
+  let tableSessionId: string | null = null;
+
+  if (payload.tableSessionId) {
+    const tableSession = await prisma.tableSession.findUnique({ where: { id: payload.tableSessionId } });
+    if (!tableSession || tableSession.status !== "CONFIRMED") {
+      throw new ReceiptImportError("TABLE_SESSION_NOT_CONFIRMED");
+    }
+    userId = tableSession.userId;
+    tableSessionId = tableSession.id;
+  } else {
+    const phone = normalizePhone(payload.guestPhone ?? "");
+    const user = phone ? await prisma.user.findUnique({ where: { phone } }) : null;
+    if (!user) throw new ReceiptImportError("GUEST_NOT_FOUND");
+    userId = user.id;
   }
 
   const month = currentCalendarMonth(new Date(payload.date));
@@ -40,13 +58,13 @@ export async function importPosReceipt(
 
   const receipt = await prisma.receipt.create({
     data: {
-      userId: tableSession.userId,
+      userId,
       date: new Date(payload.date),
       totalAmount: payload.totalAmount,
       source: "POS_IMPORT",
       status: "CONFIRMED",
       posExternalId: payload.posExternalId,
-      tableSessionId: tableSession.id,
+      tableSessionId,
       countsTowardGoldMonth,
       items: { create: payload.items.map((item) => ({ name: item.name, price: item.price, quantity: item.quantity })) },
     },
@@ -54,9 +72,9 @@ export async function importPosReceipt(
 
   // countsTowardGoldMonth пустой ровно когда totalAmount <= 0 — в этом случае accrueCashbackIfGold
   // всё равно выходит раньше, чем понадобится role, так что здесь она гарантированно определена.
-  const role = countsTowardGoldMonth ? await recomputeGoldStatus(tableSession.userId, month) : undefined;
+  const role = countsTowardGoldMonth ? await recomputeGoldStatus(userId, month) : undefined;
 
-  await accrueCashbackIfGold(tableSession.userId, receipt.id, payload.totalAmount, role);
+  await accrueCashbackIfGold(userId, receipt.id, payload.totalAmount, role);
 
   return { receiptId: receipt.id, duplicate: false };
 }

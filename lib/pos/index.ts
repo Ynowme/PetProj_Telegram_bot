@@ -1,6 +1,6 @@
 import type { PosProvider } from "@/lib/pos/provider";
-import { fakePosProvider } from "@/lib/pos/fake-provider";
+import { sharedDbPosProvider } from "@/lib/pos/shared-db-provider";
 
-// TODO(SkyService): подменить на SkyServiceProvider после получения официальной
-// API/webhook-документации, тестовых ключей и примеров payload от владельца (Промт 4).
-export const posProvider: PosProvider = fakePosProvider;
+// Реальний провайдер — CastaPOS (окремий репозиторій, спільна Neon-база), див.
+// lib/pos/shared-db-provider.ts. fakePosProvider лишається лише для юніт-тестів.
+export const posProvider: PosProvider = sharedDbPosProvider;

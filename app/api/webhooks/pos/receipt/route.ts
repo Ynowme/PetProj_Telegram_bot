@@ -12,8 +12,13 @@ function isValidPayload(value: unknown): value is ReceiptWebhookBody {
 
   if (v.event === "RECEIPT_REFUNDED") return true;
 
+  // Гостя визначено рівно одним способом: або tableSessionId, або guestPhone (CastaPOS-фолбек,
+  // коли гість не лінкував стіл через сайт) — див. lib/receipt-import.ts.
+  const hasTableSessionId = typeof v.tableSessionId === "string" && v.tableSessionId.length > 0;
+  const hasGuestPhone = typeof v.guestPhone === "string" && v.guestPhone.length > 0;
+  if (hasTableSessionId === hasGuestPhone) return false;
+
   return (
-    typeof v.tableSessionId === "string" &&
     typeof v.date === "string" &&
     typeof v.totalAmount === "number" &&
     Number.isFinite(v.totalAmount) &&
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: result.duplicate ? 200 : 201 });
   } catch (error) {
     if (error instanceof ReceiptImportError) {
-      const status = error.code === "RECEIPT_NOT_FOUND" ? 404 : 409;
+      const status = error.code === "RECEIPT_NOT_FOUND" || error.code === "GUEST_NOT_FOUND" ? 404 : 409;
       return NextResponse.json({ error: { code: error.code } }, { status });
     }
     throw error;
