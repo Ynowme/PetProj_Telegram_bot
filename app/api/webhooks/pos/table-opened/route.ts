@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { readVerifiedWebhookBody } from "@/lib/webhook-security";
 import { prisma } from "@/lib/prisma";
 
@@ -29,7 +30,15 @@ export async function POST(request: NextRequest) {
 
   const existingOpen = await prisma.posOrder.findFirst({ where: { tableId: table.id, status: "OPEN" } });
   if (!existingOpen) {
-    await prisma.posOrder.create({ data: { tableId: table.id, status: "OPEN" } });
+    try {
+      await prisma.posOrder.create({ data: { tableId: table.id, status: "OPEN" } });
+    } catch (error) {
+      // PosOrder_single_open_per_table_key (частковий унікальний індекс, той самий прийом, що
+      // CastaPOS lib/orders.ts:openOrder) — паралельна/повторна доставка цього ж вебхука вже
+      // встигла створити рядок між findFirst і цим create; переможець гонки вже зробив свою
+      // справу, нам більше нічого робити не треба.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) throw error;
+    }
   }
 
   return NextResponse.json({ ok: true });

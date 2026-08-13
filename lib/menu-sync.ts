@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 
@@ -38,16 +39,29 @@ async function uniqueSlugFor(name: string): Promise<string> {
 // Slug виставляється лише при СТВОРЕННІ категорії і більше не міняється навіть якщо назва в
 // CastaPOS зміниться — /menu/[categorySlug] є реальним посиланням, яке гість міг зберегти в
 // закладки, ламати його перейменуванням на боці POS не варто.
+//
+// uniqueSlugFor перевіряє зайнятість окремим запитом ДО create — між ними є вікно гонки (дві
+// категорії з однаковою назвою, синхронізовані майже одночасно, можуть обидві побачити той самий
+// вільний slug). Ретрай на P2002 замість pre-check-then-create покриває це: програвша спроба
+// просто рахує наступний вільний slug наново.
 async function upsertCategory(externalId: string, name: string, order: number, parentId: string | null): Promise<string> {
   const existing = await prisma.menuCategory.findUnique({ where: { posExternalId: externalId } });
   if (existing) {
     const updated = await prisma.menuCategory.update({ where: { id: existing.id }, data: { name, order, parentId } });
     return updated.id;
   }
-  const created = await prisma.menuCategory.create({
-    data: { name, order, parentId, posExternalId: externalId, slug: await uniqueSlugFor(name) },
-  });
-  return created.id;
+
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const created = await prisma.menuCategory.create({
+        data: { name, order, parentId, posExternalId: externalId, slug: await uniqueSlugFor(name) },
+      });
+      return created.id;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" && attempt < 3) continue;
+      throw error;
+    }
+  }
 }
 
 export async function upsertMenuItem(payload: MenuSyncUpsertPayload): Promise<void> {

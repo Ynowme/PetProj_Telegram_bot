@@ -201,6 +201,12 @@ model PosTable {
   orders PosOrder[]
 }
 
+// Тільки одне відкрите замовлення на стіл одночасно — забезпечено частковим унікальним індексом
+// у SQL-міграції (Prisma це не виражає, той самий підхід, що й PosShift нижче та сам CastaPOS —
+// PosOrder_single_open_per_table_key там же). Без цього індексу table-opened вебхук
+// (app/api/webhooks/pos/table-opened/route.ts) мав би TOCTOU-гонку: два майже одночасні виклики
+// (напр. ретрай доставки) обидва пройшли б перевірку "чи є вже відкрите" до того, як хтось
+// встиг вставити свій рядок.
 model PosOrder {
   id          String         @id @default(cuid())
   tableId     String

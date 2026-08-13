@@ -58,6 +58,7 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
               height: "100%",
               objectFit: "cover",
               zIndex: 0,
+              pointerEvents: "none",
             }}
           />
           {/* Той самий градієнт-оверлей, що на hero головної (app/(public)/page.tsx) — фото банера
@@ -68,6 +69,7 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
               position: "absolute",
               inset: 0,
               zIndex: 0,
+              pointerEvents: "none",
               background: "linear-gradient(90deg, rgba(10, 10, 12, 0.85) 0%, rgba(10, 10, 12, 0.55) 55%, rgba(10, 10, 12, 0.85) 100%)",
             }}
           />

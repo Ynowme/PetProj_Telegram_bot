@@ -123,7 +123,7 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
         </div>
       )}
 
-      {status && CAN_REQUEST.has(status.status) && (
+      {(!status || CAN_REQUEST.has(status.status)) && (
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.75rem" }}>
           <input
             placeholder="Код столу (з QR-наклейки)"

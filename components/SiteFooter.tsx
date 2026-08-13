@@ -48,11 +48,23 @@ const DAY_LABEL: Record<(typeof DAY_KEYS)[number], string> = {
   sun: "Нд",
 };
 
-// JS Date.getDay(): 0 = неділя … 6 = субота. DAY_KEYS іде Пн…Нд, тож неділя (0) — останній
-// індекс (6), решта днів зсуваються на 1 назад.
+const WEEKDAY_TO_KEY: Record<string, (typeof DAY_KEYS)[number]> = {
+  Mon: "mon",
+  Tue: "tue",
+  Wed: "wed",
+  Thu: "thu",
+  Fri: "fri",
+  Sat: "sat",
+  Sun: "sun",
+};
+
+// Сервер рендерить у своїй таймзоні (UTC на Vercel), а заклад — у Europe/Kyiv: простий
+// new Date().getDay() підсвічував би вчорашній день щоночі з 00:00 до 02:00-03:00 за Києвом
+// (різниця UTC+2/+3 залежно від DST). Intl.DateTimeFormat із явною таймзоною рахує правильно
+// в обидва боки переведення стрілок, без нової залежності.
 function todayKey(): (typeof DAY_KEYS)[number] {
-  const jsDay = new Date().getDay();
-  return DAY_KEYS[jsDay === 0 ? 6 : jsDay - 1];
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Kyiv", weekday: "short" }).format(new Date());
+  return WEEKDAY_TO_KEY[weekday] ?? "mon";
 }
 
 function WorkingHoursTable({ schedule }: { schedule: WorkingHoursByDay }) {
