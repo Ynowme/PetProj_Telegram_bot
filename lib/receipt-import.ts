@@ -15,6 +15,7 @@ export type PosReceiptPayload = {
   guestPhone?: string;
   date: string;
   totalAmount: number;
+  paymentType?: "CASH" | "CARD";
   items: PosReceiptItemInput[];
 };
 
@@ -63,6 +64,7 @@ export async function importPosReceipt(
       totalAmount: payload.totalAmount,
       source: "POS_IMPORT",
       status: "CONFIRMED",
+      paymentType: payload.paymentType ?? "CASH",
       posExternalId: payload.posExternalId,
       tableSessionId,
       countsTowardGoldMonth,

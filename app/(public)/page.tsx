@@ -14,7 +14,7 @@ export default async function HomePage() {
           minHeight: "62vh",
           display: "flex",
           alignItems: "flex-end",
-          backgroundImage: "url(/hero-bar.jpg)",
+          backgroundImage: `url(${siteContent?.heroImageUrl ?? "/hero-bar.jpg"})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -47,7 +47,7 @@ export default async function HomePage() {
               color: "var(--foreground-muted)",
             }}
           >
-            Castaneda Smoking Bar
+            {siteContent?.venueName ?? "Castaneda Smoking Bar"}
           </p>
           <h1
             style={{
@@ -57,7 +57,7 @@ export default async function HomePage() {
               lineHeight: 1.15,
             }}
           >
-            Місце, куди хочеться повертатися знову і знову
+            {siteContent?.tagline ?? "Місце, куди хочеться повертатися знову і знову"}
           </h1>
 
           <div className="hero-cta">

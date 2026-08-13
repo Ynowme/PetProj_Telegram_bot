@@ -2,6 +2,7 @@
 // Полностью заменяет текущие MenuCategory/MenuItem — запускать только осознанно.
 // Запуск: npm run menu:import
 import { PrismaClient } from "@prisma/client";
+import { slugify } from "../lib/slug";
 
 const prisma = new PrismaClient();
 
@@ -34,21 +35,6 @@ type SourceMenuJson = {
   categories: SourceCategory[];
   dishes: SourceDish[];
 };
-
-const TRANSLIT: Record<string, string> = {
-  а: "a", б: "b", в: "v", г: "h", ґ: "g", д: "d", е: "e", є: "ie", ж: "zh", з: "z",
-  и: "y", і: "i", ї: "i", й: "i", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p",
-  р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch",
-  ь: "", ю: "iu", я: "ia", ы: "y", э: "e", ъ: "",
-};
-
-function slugify(input: string): string {
-  const transliterated = [...input.toLowerCase()].map((char) => TRANSLIT[char] ?? char).join("");
-  return transliterated
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
-}
 
 function stripHtml(html: string): string {
   if (!html) return "";

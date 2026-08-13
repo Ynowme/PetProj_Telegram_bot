@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import type { PosProvider } from "@/lib/pos/provider";
 
-// Реальний PosProvider для CastaPOS (окремий репозиторій, спільна Neon-база — Промт 4).
-// CastaPOS сам пише в PosTable/PosOrder напряму; тут ми лише читаємо той самий стан, без
-// HTTP-виклику до CastaPOS (сенс спільної БД саме в цьому). "Стіл зайнятий" ⇔ є PosOrder
-// зі статусом OPEN для цього tableCode. posTableExternalId — id відповідного PosOrder,
-// зберігається на TableSession так само, як раніше зберігався id з fake-провайдера.
+// Реальний PosProvider для CastaPOS (окремий репозиторій, живе на власному залізі бару — до
+// нього не дотягнутись з Vercel). PosTable/PosOrder тут — НЕ спільна БД (той план не відбувся,
+// CastaPOS отримав власну незалежну Postgres), а локальне дзеркало: CastaPOS штовхає стан push-
+// вебхуками (POST /api/webhooks/pos/table-opened, table-closed, lib/site-sync.ts в тому
+// репозиторії), ми лише читаємо те, що вони наповнили. "Стіл зайнятий" ⇔ є PosOrder зі статусом
+// OPEN для цього tableCode. posTableExternalId — id відповідного PosOrder (нашого власного, не
+// CastaPOS-івського), зберігається на TableSession так само, як раніше зберігався id з
+// fake-провайдера.
 export const sharedDbPosProvider: PosProvider = {
   async isTableOpen(tableCode: string) {
     const openOrder = await prisma.posOrder.findFirst({

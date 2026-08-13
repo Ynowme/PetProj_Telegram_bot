@@ -5,6 +5,6 @@ export const getActivePromoBanners = cache(() =>
   prisma.promoBanner.findMany({
     where: { isActive: true },
     orderBy: { order: "asc" },
-    select: { id: true, title: true, description: true },
+    select: { id: true, title: true, description: true, imageUrl: true },
   }),
 );

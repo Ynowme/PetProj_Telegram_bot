@@ -20,6 +20,9 @@ export default function AdminDashboardPage() {
         <Link href="/admin/service-requests" className="panel">
           Запити на послуги
         </Link>
+        <Link href="/admin/reviews" className="panel">
+          Відгуки гостей
+        </Link>
       </nav>
     </main>
   );

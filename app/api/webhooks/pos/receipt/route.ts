@@ -18,6 +18,8 @@ function isValidPayload(value: unknown): value is ReceiptWebhookBody {
   const hasGuestPhone = typeof v.guestPhone === "string" && v.guestPhone.length > 0;
   if (hasTableSessionId === hasGuestPhone) return false;
 
+  if (v.paymentType !== undefined && v.paymentType !== "CASH" && v.paymentType !== "CARD") return false;
+
   return (
     typeof v.date === "string" &&
     typeof v.totalAmount === "number" &&

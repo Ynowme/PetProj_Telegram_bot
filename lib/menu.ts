@@ -6,8 +6,10 @@ const NEW_ITEMS_LIMIT = 30;
 const NEW_ITEM_DAYS = 30;
 const BAR_CATEGORY_SLUG = "bar";
 
-// Заглушка з імпорту меню (scripts/import-menu.ts) — позиції без реального фото отримують
-// саме цей URL. Використовується, щоб показати назву позиції поверх заглушки (MenuItemCard).
+// Заглушка для позицій без реального фото (photoUrl: null у БД) — підставляється тут, у
+// serializeMenuItem, а не зберігається в БД: тоді MenuItemCard завжди отримує рядок і показує
+// назву позиції поверх заглушки. Джерела null: імпорт (scripts/import-menu.ts) чи sync з
+// CastaPOS (lib/menu-sync.ts), коли товар ще без фото.
 export const PLACEHOLDER_PHOTO_URL = "https://static.shaketopay.com.ua/menu-prod/default-dish.png";
 
 export function newItemCutoff(): Date {
@@ -64,7 +66,7 @@ export function serializeMenuItem(item: MenuItemWithLikeCount) {
     description: item.description,
     price: Number(item.price),
     currency: item.currency,
-    photoUrl: item.photoUrl,
+    photoUrl: item.photoUrl ?? PLACEHOLDER_PHOTO_URL,
     volume: item.volume,
     abv: item.abv !== null ? Number(item.abv) : null,
     likesCount: item._count.likes,

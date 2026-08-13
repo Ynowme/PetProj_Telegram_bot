@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { BlurText } from "@/components/BlurText";
 
-export type PromoBanner = { id: string; title: string; description: string | null };
+export type PromoBanner = { id: string; title: string; description: string | null; imageUrl: string | null };
 
 // FR-008: свайпаемая карусель баннеров; при одном баннере переключение недоступно.
 export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
@@ -44,24 +44,54 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- декоративна текстура диму, не контентне зображення */}
-      <img
-        src="/smoke-bg.png"
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          height: "230%",
-          width: "auto",
-          maxWidth: "none",
-          opacity: 0.8,
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
+      {banner.imageUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- фото банера з CastaPOS-адмінки, довільний URL */}
+          <img
+            src={banner.imageUrl}
+            alt=""
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: 0,
+            }}
+          />
+          {/* Той самий градієнт-оверлей, що на hero головної (app/(public)/page.tsx) — фото банера
+              може бути світлим, текст лишається читабельним незалежно від контрасту фото. */}
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 0,
+              background: "linear-gradient(90deg, rgba(10, 10, 12, 0.85) 0%, rgba(10, 10, 12, 0.55) 55%, rgba(10, 10, 12, 0.85) 100%)",
+            }}
+          />
+        </>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- декоративна текстура диму, не контентне зображення
+        <img
+          src="/smoke-bg.png"
+          alt=""
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            height: "230%",
+            width: "auto",
+            maxWidth: "none",
+            opacity: 0.8,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      )}
 
       <div
         className="promo-carousel__content"

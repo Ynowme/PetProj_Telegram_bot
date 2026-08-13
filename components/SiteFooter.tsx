@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/site-content";
+import { DAY_KEYS, type WorkingHoursByDay } from "@/lib/site-content-sync";
 
 function InstagramIcon() {
   return (
@@ -28,12 +29,65 @@ function GoogleIcon() {
   );
 }
 
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.6}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <path d="m7.5 12.2 9.8-4.4-3 9.9-2.9-2.6-2 1.9-.1-2.8Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const DAY_LABEL: Record<(typeof DAY_KEYS)[number], string> = {
+  mon: "Пн",
+  tue: "Вт",
+  wed: "Ср",
+  thu: "Чт",
+  fri: "Пт",
+  sat: "Сб",
+  sun: "Нд",
+};
+
+// JS Date.getDay(): 0 = неділя … 6 = субота. DAY_KEYS іде Пн…Нд, тож неділя (0) — останній
+// індекс (6), решта днів зсуваються на 1 назад.
+function todayKey(): (typeof DAY_KEYS)[number] {
+  const jsDay = new Date().getDay();
+  return DAY_KEYS[jsDay === 0 ? 6 : jsDay - 1];
+}
+
+function WorkingHoursTable({ schedule }: { schedule: WorkingHoursByDay }) {
+  const today = todayKey();
+  return (
+    <table style={{ borderCollapse: "collapse", fontSize: "0.9rem" }}>
+      <tbody>
+        {DAY_KEYS.map((day) => {
+          const hours = schedule[day];
+          const isToday = day === today;
+          return (
+            <tr key={day} style={{ fontWeight: isToday ? 600 : 400 }}>
+              <td style={{ paddingRight: "0.75rem", color: isToday ? "var(--foreground)" : "var(--foreground-muted)" }}>{DAY_LABEL[day]}</td>
+              <td style={{ color: isToday ? "var(--foreground)" : "var(--foreground-muted)" }}>{hours ? `${hours.open}–${hours.close}` : "вихідний"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 // FR-012, FR-013: телефон (клікабельний), соцмережі, вбудована карта.
 export async function SiteFooter() {
   const siteContent = await getSiteContent();
   if (!siteContent) return null;
 
   const telHref = `tel:${siteContent.phone.replace(/[^+\d]/g, "")}`;
+  const schedule = siteContent.workingHoursByDay as WorkingHoursByDay | null;
+
+  const legalLinks = [
+    { href: "/privacy-policy", label: "Політика конфіденційності", enabled: Boolean(siteContent.privacyPolicyText) },
+    { href: "/terms-of-use", label: "Умови користування", enabled: Boolean(siteContent.termsOfUseText) },
+    { href: "/cookie-policy", label: "Політика cookie", enabled: Boolean(siteContent.cookiePolicyText) },
+  ].filter((link) => link.enabled);
 
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "2rem 1.5rem", marginTop: "3rem" }}>
@@ -44,6 +98,7 @@ export async function SiteFooter() {
           <p>
             <a href={telHref}>📞 {siteContent.phone}</a>
           </p>
+          {schedule && <WorkingHoursTable schedule={schedule} />}
         </div>
 
         <div>
@@ -67,6 +122,13 @@ export async function SiteFooter() {
               <li>
                 <a href={siteContent.googleUrl} target="_blank" rel="noreferrer" aria-label="Google" className="social-icon">
                   <GoogleIcon />
+                </a>
+              </li>
+            )}
+            {siteContent.telegramUrl && (
+              <li>
+                <a href={siteContent.telegramUrl} target="_blank" rel="noreferrer" aria-label="Telegram" className="social-icon">
+                  <TelegramIcon />
                 </a>
               </li>
             )}
@@ -106,6 +168,27 @@ export async function SiteFooter() {
           )}
         </div>
       </div>
+
+      {legalLinks.length > 0 && (
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: "1.5rem auto 0",
+            paddingTop: "1.5rem",
+            borderTop: "1px solid var(--border)",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "1rem",
+            fontSize: "0.85rem",
+          }}
+        >
+          {legalLinks.map((link) => (
+            <a key={link.href} href={link.href} style={{ color: "var(--foreground-muted)" }}>
+              {link.label}
+            </a>
+          ))}
+        </div>
+      )}
     </footer>
   );
 }

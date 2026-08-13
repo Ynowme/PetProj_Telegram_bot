@@ -49,6 +49,7 @@ model User {
   auditLogEntries    AuditLogEntry[]
   serviceRequests        ServiceRequest[] @relation("ServiceRequestGuest")
   handledServiceRequests ServiceRequest[] @relation("ServiceRequestHandledBy")
+  reviews                Review[]
 
   @@index([role])
 }
@@ -65,11 +66,14 @@ model RateLimit {
 // --- Меню (FR-001…FR-003, FR-015, FR-019…FR-022) ---
 
 model MenuCategory {
-  id       String  @id @default(cuid())
-  name     String
-  slug     String  @unique
-  parentId String?
-  order    Int     @default(0)
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  parentId     String?
+  order        Int     @default(0)
+  // Id категорії в CastaPOS (lib/menu-sync.ts) — ключ ідемпотентності для sync-вебхука. Null для
+  // категорій, не пов'язаних із POS (напр. створених вручну до інтеграції чи через menu:import).
+  posExternalId String? @unique
 
   parent   MenuCategory?  @relation("CategoryToSubcategory", fields: [parentId], references: [id], onDelete: Cascade)
   children MenuCategory[] @relation("CategoryToSubcategory")
@@ -80,12 +84,19 @@ model MenuItem {
   id          String   @id @default(cuid())
   categoryId  String
   name        String
-  description String
+  // Ці три поля CastaPOS не веде (товар/тех.карта там не мають опису/об'єму/ABV) — тепер
+  // необов'язкові, щоб позиції, що прийшли через menu-sync (lib/menu-sync.ts), могли лишити їх
+  // порожніми замість фейкових значень. Раніше були обов'язковими під ручний menu:import
+  // (shaketopay-експорт), який завжди їх заповнював.
+  description String   @default("")
   price       Decimal  @db.Decimal(10, 2)
   currency    String   @default("UAH")
-  photoUrl    String
-  volume      String
+  photoUrl    String?
+  volume      String   @default("")
   abv         Decimal? @db.Decimal(4, 1)
+  // Id товару/тех.карти в CastaPOS — ключ ідемпотентності для sync-вебхука, те саме, що
+  // MenuCategory.posExternalId вище.
+  posExternalId String? @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -171,11 +182,12 @@ model ServiceRequest {
   @@index([status])
 }
 
-// --- CastaPOS: столи/замовлення персоналу (заміна SkyService, окремий репозиторій CastaPOS) ---
-// Ці таблиці належать CastaPOS: він тут читає й пише напряму (спільна Neon-база), але міграції
-// на цю БД веде тільки цей репозиторій (PetProj) — CastaPOS ніколи не запускає власний
-// `prisma migrate` проти спільної БД. Сам чек/бонуси/Gold — все ще виключно через
-// /api/webhooks/pos/receipt (importPosReceipt), CastaPOS у Receipt/BonusTransaction не пише.
+// --- Дзеркало стану столів CastaPOS (окремий репозиторій, власна незалежна БД — не спільна) ---
+// Ці таблиці НЕ спільні з CastaPOS: він живе на власному залізі бару, сюди йому не дотягнутись, і
+// у нього своя Postgres. Наповнюються push-вебхуками з CastaPOS (lib/site-sync.ts там же) —
+// table-opened/table-closed (app/api/webhooks/pos/*), lib/pos/shared-db-provider.ts тут лише
+// читає. Сам чек/бонуси/Gold — все ще виключно через /api/webhooks/pos/receipt (importPosReceipt),
+// CastaPOS у Receipt/BonusTransaction не пише.
 enum PosOrderStatus {
   OPEN
   CLOSED
@@ -192,28 +204,102 @@ model PosTable {
 model PosOrder {
   id          String         @id @default(cuid())
   tableId     String
+  shiftId     String? // зміна, під час якої відкрито стіл (шифти обов'язкові — див. PosShift)
   status      PosOrderStatus @default(OPEN)
   guestUserId String?
   openedAt    DateTime       @default(now())
   closedAt    DateTime?
-  receiptId   String?        @unique
+  receiptId   String?        @unique // legacy 1:1-поле з часів до спліт-чека, більше не заповнюється — джерело істини тепер PosReceiptGroup.receiptId
 
-  table PosTable       @relation(fields: [tableId], references: [id])
-  items PosOrderItem[]
+  table         PosTable          @relation(fields: [tableId], references: [id])
+  shift         PosShift?         @relation(fields: [shiftId], references: [id])
+  items         PosOrderItem[]
+  receiptGroups PosReceiptGroup[]
 
   @@index([tableId, status])
+  @@index([shiftId])
 }
 
 model PosOrderItem {
-  id         String   @id @default(cuid())
-  orderId    String
-  menuItemId String? // null = довільна позиція, не з каталогу MenuItem
-  name       String // знімок назви на момент додавання
-  price      Decimal  @db.Decimal(10, 2)
-  quantity   Int      @default(1)
-  addedAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  orderId        String
+  menuItemId     String? // null = довільна позиція, не з каталогу MenuItem
+  name           String // знімок назви на момент додавання
+  price          Decimal  @db.Decimal(10, 2)
+  quantity       Int      @default(1)
+  addedAt        DateTime @default(now())
+  receiptGroupId String? // заповнюється, коли позицію віднесено до конкретного (спліт-)чека
 
-  order PosOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order        PosOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receiptGroup PosReceiptGroup? @relation(fields: [receiptGroupId], references: [id])
+
+  @@index([receiptGroupId])
+}
+
+// --- Зміни каси, рух готівки, спліт чека (фаза "каса" цільової моделі, див. golden-sparking-emerson.md) ---
+// Особистих логінів касирів немає (свідомо поза скоупом) — openedByName/closedByName це вільний текст,
+// а не FK на User. Тільки одна відкрита зміна одночасно — забезпечено частковим унікальним індексом
+// у SQL-міграції (Prisma це не виражає, той самий підхід, що й для TableSession вище).
+enum PosShiftStatus {
+  OPEN
+  CLOSED
+}
+
+model PosShift {
+  id           String         @id @default(cuid())
+  status       PosShiftStatus @default(OPEN)
+  openedByName String?
+  openedAt     DateTime       @default(now())
+  openingCash  Decimal        @db.Decimal(10, 2)
+  closedByName String?
+  closedAt     DateTime?
+  closingCash  Decimal?       @db.Decimal(10, 2)
+
+  orders           PosOrder[]
+  cashTransactions PosCashTransaction[]
+  receiptGroups    PosReceiptGroup[]
+
+  @@index([status])
+}
+
+enum PosCashTransactionType {
+  DEPOSIT // Внесення
+  WITHDRAWAL // Інкасація
+  EXPENSE // Витрата
+}
+
+model PosCashTransaction {
+  id        String                 @id @default(cuid())
+  shiftId   String
+  type      PosCashTransactionType
+  amount    Decimal                @db.Decimal(10, 2)
+  comment   String?
+  createdAt DateTime               @default(now())
+
+  shift PosShift @relation(fields: [shiftId], references: [id])
+
+  @@index([shiftId])
+}
+
+// Один "пробитий чек" на боці CastaPOS — може покривати частину позицій PosOrder (спліт).
+// posExternalId — те, що йде у вебхук до /api/webhooks/pos/receipt; receiptId — id вже
+// створеного там Receipt (null, доки вебхук не відповів успішно).
+model PosReceiptGroup {
+  id            String             @id @default(cuid())
+  orderId       String
+  shiftId       String
+  paymentType   ReceiptPaymentType
+  totalAmount   Decimal            @db.Decimal(10, 2)
+  posExternalId String             @unique
+  receiptId     String?            @unique
+  createdAt     DateTime           @default(now())
+
+  order PosOrder       @relation(fields: [orderId], references: [id])
+  shift PosShift       @relation(fields: [shiftId], references: [id])
+  items PosOrderItem[]
+
+  @@index([orderId])
+  @@index([shiftId])
 }
 
 // --- Чеки и бонусы (FR-007, FR-009, FR-010, FR-011, FR-016, FR-025; specs/002 FR-007…FR-017) ---
@@ -229,6 +315,14 @@ enum ReceiptStatus {
   CANCELLED
 }
 
+// Готівка/картка — введено разом зі змінами каси CastaPOS (PosShift/PosCashTransaction/
+// PosReceiptGroup вище). MANUAL_ADMIN-чеки (admin/receipts/new) не мають способу оплати
+// в UI — лишаються на дефолтному CASH.
+enum ReceiptPaymentType {
+  CASH
+  CARD
+}
+
 model Receipt {
   id          String   @id @default(cuid())
   userId      String
@@ -237,9 +331,10 @@ model Receipt {
   currency    String   @default("UAH")
   createdAt   DateTime @default(now())
 
-  source                ReceiptSource @default(MANUAL_ADMIN)
-  status                ReceiptStatus @default(CONFIRMED)
-  posExternalId         String?       @unique
+  source                ReceiptSource      @default(MANUAL_ADMIN)
+  status                ReceiptStatus      @default(CONFIRMED)
+  paymentType           ReceiptPaymentType @default(CASH)
+  posExternalId         String?            @unique
   tableSessionId        String?
   countsTowardGoldMonth String?
 
@@ -354,13 +449,18 @@ model BonusSettings {
 
 model PromoBanner {
   id          String   @id @default(cuid())
-  imageUrl    String
+  // Раніше обов'язкове — зараз керується з CastaPOS (app/api/webhooks/pos/promo-banners), де
+  // фото не завжди задане одразу; текстовий банер без картинки лишається робочим варіантом
+  // (components/PromoCarousel.tsx фолбечиться на теперішній текст+дим-текстуру вигляд).
+  imageUrl    String?
   title       String
   description String?
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // Id банера в CastaPOS — ключ ідемпотентності, той самий підхід, що MenuItem.posExternalId.
+  posExternalId String? @unique
 }
 
 // --- Контакты / о заведении (FR-012…FR-014, FR-022, FR-023) ---
@@ -378,4 +478,50 @@ model SiteContent {
   facebookUrl        String?
   allergyDisclaimer  String
   aboutText          String
+  // Брендинг — приходить з CastaPOS (app/api/webhooks/pos/site-content), джерело правди там
+  // (AppSettings). Null, поки власник ще не зберіг ці поля в адмінці CastaPOS — фронт (SiteHeader,
+  // головна, app/layout.tsx) фолбечиться на статичні public/logo.svg, public/hero-bar.jpg й
+  // захардкожені рядки, тож сайт лишається робочим і до першої синхронізації.
+  venueName  String?
+  tagline    String?
+  logoUrl    String?
+  faviconUrl String?
+  heroImageUrl String?
+  telegramUrl  String?
+
+  // Акцентний колір теми (hex) — lib/color.ts виводить з нього bright/muted/contrast відтінки,
+  // застосовується інлайн-стилем на <html> в app/layout.tsx. Null = дефолтна палітра з
+  // app/globals.css.
+  accentColor String?
+
+  // Розклад по днях тижня — заступає workingHours (вище) в SiteFooter, коли заданий; форма
+  // { mon: {open,close}|null, ..., sun } — null означає вихідний, ключ відсутній/null поле
+  // означає "власник ще не переходив на новий формат", тоді фронт бере старий workingHours.
+  workingHoursByDay Json?
+
+  // Текст юридичних сторінок — приходить з CastaPOS (власник сам пише), null = відповідна
+  // сторінка/посилання в футері не показується взагалі (app/(public)/privacy-policy/тощо).
+  privacyPolicyText String?
+  termsOfUseText    String?
+  cookiePolicyText  String?
+}
+
+// Відгук гостя (FR: форма "Залишити відгук") — на відміну від решти сайт-контенту, НЕ приходить
+// з CastaPOS: гість лишає його прямо на сайті (app/(public)/feedback), CastaPOS ніколи не бачить
+// (не приймає вхідних запитів ззовні — весь інший синк іде в протилежний бік). Перегляд —
+// у власній адмінці PetProj (app/(admin)/admin/reviews), не в CastaPOS.
+model Review {
+  id            String   @id @default(cuid())
+  dishesRating  Int // 1..5
+  serviceRating Int // 1..5
+  comment       String?
+  contactName   String?
+  contactPhone  String?
+  userId        String? // якщо гість був залогінений на момент подачі
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
 }

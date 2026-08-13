@@ -12,12 +12,21 @@ function isValidPayload(value: unknown): value is TableClosedBody {
 
 // FR-006: после закрытия стола в POS новые привязки к этой сессии недопустимы.
 // Идемпотентна — повторная доставка события не меняет уже закрытую сессию.
+//
+// Заодно закриває дзеркальний PosOrder (lib/pos/shared-db-provider.ts) — без спільної БД з
+// CastaPOS це єдине джерело правди про "стіл відкритий" для isTableOpen/listTables; без цього
+// кроку стіл назавжди лишався б "відкритим" на боці сайту після реального закриття в POS.
 export async function POST(request: NextRequest) {
   const { payload, response } = await readVerifiedWebhookBody(request, {
     secret: process.env.POS_WEBHOOK_SECRET,
     isValid: isValidPayload,
   });
   if (response) return response;
+
+  await prisma.posOrder.updateMany({
+    where: { table: { code: payload.tableCode }, status: "OPEN" },
+    data: { status: "CLOSED", closedAt: new Date() },
+  });
 
   const active = await prisma.tableSession.findFirst({
     where: { tableCode: payload.tableCode, status: { in: ["PENDING_STAFF_CONFIRMATION", "CONFIRMED"] } },

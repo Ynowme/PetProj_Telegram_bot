@@ -23,7 +23,9 @@ const buttonLinkStyle: CSSProperties = {
 
 // Вхід через реального Telegram-бота (deep link, FR-004): на відміну від Login Widget,
 // t.me/<bot>?start=<token> завжди відкриває саме застосунок Telegram, а не веб-версію.
-export function TelegramBotLoginButton() {
+// callbackUrl — куди повернути гостя після підтвердження (напр. /t/[code] з QR-наклейки, щоб
+// прив'язка до столу продовжилась одразу після входу, а не губилась на /account).
+export function TelegramBotLoginButton({ callbackUrl = "/account" }: { callbackUrl?: string }) {
   const [deepLink, setDeepLink] = useState<string | null | undefined>(undefined);
   const [status, setStatus] = useState<"idle" | "waiting" | "confirmed" | "expired">("idle");
   const [showHint, setShowHint] = useState(false);
@@ -84,7 +86,7 @@ export function TelegramBotLoginButton() {
       if (data.status === "CONFIRMED") {
         stopPolling();
         setStatus("confirmed");
-        void signIn("telegram-bot", { token, callbackUrl: "/account" });
+        void signIn("telegram-bot", { token, callbackUrl });
       } else if (data.status === "EXPIRED") {
         stopPolling();
         setStatus("expired");
