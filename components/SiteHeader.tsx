@@ -23,15 +23,21 @@ export async function SiteHeader() {
   ];
 
   return (
-    <header style={{ borderBottom: "1px solid var(--border)" }}>
-      <div className="site-header__bar">
-        <Link href="/" style={{ display: "inline-flex" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- лого з CastaPOS-адмінки або статичний фолбек-бейдж */}
-          <img src={siteContent?.logoUrl ?? "/logo.svg"} alt={siteContent?.venueName ?? "Логотип закладу"} width={48} height={48} />
-        </Link>
-        <SiteHeaderNav items={navItems} />
-      </div>
+    // Липка тільки шапка (лого + навігація), не банер-карусель нижче — інакше вона б
+    // назавжди займала екран при скролі. Карусель навмисно ВИНЕСЕНА з <header> як сусідній
+    // елемент: position:sticky обмежена висотою свого батька, а батько тут — <header> — був
+    // би заввишки "шапка + карусель" і липкість зникала б одразу за каруселлю.
+    <>
+      <header className="site-header__sticky">
+        <div className="site-header__bar">
+          <Link href="/" style={{ display: "inline-flex" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- лого з CastaPOS-адмінки або статичний фолбек-бейдж */}
+            <img src={siteContent?.logoUrl ?? "/logo.svg"} alt={siteContent?.venueName ?? "Логотип закладу"} width={48} height={48} />
+          </Link>
+          <SiteHeaderNav items={navItems} />
+        </div>
+      </header>
       <PromoCarousel banners={banners} />
-    </header>
+    </>
   );
 }

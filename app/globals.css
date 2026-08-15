@@ -213,20 +213,6 @@ button:focus-visible {
 }
 
 /* Категорії меню — блоки однакового розміру, рівні відступи (T042-редизайн) */
-.category-section {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  background: linear-gradient(145deg, rgba(27, 30, 37, 0.88), rgba(15, 17, 22, 0.88));
-  border: 1px solid var(--border);
-  border-radius: 18px;
-}
-
-.category-section h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
 .category-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -343,14 +329,6 @@ button:focus-visible {
   letter-spacing: -0.04em;
 }
 
-.menu-list {
-  display: grid;
-  gap: 1rem;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
 .menu-card {
   background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
   border: 1px solid var(--border);
@@ -454,4 +432,119 @@ button:focus-visible {
   .promo-carousel__content {
     padding-inline: 0.75rem;
   }
+}
+
+.site-header__sticky {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Сторінка меню суцільним скролом (MenuBrowser) — липка навігація по категоріях
+   і плиткова сітка позицій, замість окремих сторінок на категорію (T042-редизайн v2). */
+.menu-tabs {
+  position: sticky;
+  z-index: 50;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.6rem 1.5rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-tabs--secondary {
+  padding-block: 0.45rem;
+  gap: 0.4rem;
+  background: var(--background-elevated);
+}
+
+.menu-tab {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  background: var(--surface);
+  color: var(--foreground-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.menu-tab:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
+}
+
+.menu-tab--sub {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+.menu-tab--active {
+  border-color: transparent;
+  background: var(--accent-bright);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.menu-tab--active:hover {
+  color: var(--accent-contrast);
+}
+
+.menu-section {
+  padding-top: 1.5rem;
+}
+
+.menu-section h2 {
+  margin: 0 0 1rem;
+}
+
+.menu-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.menu-card-tile {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.menu-card-tile:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.menu-card-tile__photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--surface);
+}
+
+.menu-card-tile__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.menu-card-tile__body {
+  padding: 0.75rem 0.85rem 0.9rem;
+  display: grid;
+  gap: 0.3rem;
 }

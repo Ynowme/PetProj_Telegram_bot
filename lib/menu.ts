@@ -56,6 +56,44 @@ export function getMenuCategories() {
   });
 }
 
+// Меню однієї безперервної сторінки (app/(public)/menu/page.tsx + MenuBrowser) зі
+// scrollspy-навігацією: топ-категорія — або вітка з підкатегоріями, або лист із
+// власними позиціями, ніколи не обидва одразу (те саме правило, що в getMenuCategories
+// вище й раніше кодувалося в JSX app/(public)/menu/page.tsx).
+export async function getMenuSections() {
+  const itemsInclude = {
+    include: { _count: { select: { likes: true } } },
+    orderBy: { createdAt: "asc" as const },
+  };
+
+  const categories = await prisma.menuCategory.findMany({
+    where: { parentId: null },
+    orderBy: { order: "asc" },
+    include: {
+      items: itemsInclude,
+      children: {
+        orderBy: { order: "asc" },
+        include: { items: itemsInclude },
+      },
+    },
+  });
+
+  return categories.map((category) => ({
+    id: category.id,
+    slug: category.slug,
+    name: category.name,
+    items: category.items.map(serializeMenuItem),
+    children: category.children.map((child) => ({
+      id: child.id,
+      slug: child.slug,
+      name: child.name,
+      items: child.items.map(serializeMenuItem),
+    })),
+  }));
+}
+
+export type MenuSection = Awaited<ReturnType<typeof getMenuSections>>[number];
+
 type MenuItemWithLikeCount = MenuItem & { _count: { likes: number } };
 
 export function serializeMenuItem(item: MenuItemWithLikeCount) {
@@ -71,6 +109,10 @@ export function serializeMenuItem(item: MenuItemWithLikeCount) {
     abv: item.abv !== null ? Number(item.abv) : null,
     likesCount: item._count.likes,
     isNew: item.createdAt >= newItemCutoff(),
+    // kind — синкається з CastaPOS (lib/menu-sync.ts), null для позицій, імпортованих напряму
+    // в PetProj (scripts/import-menu.ts) без прив'язки до товару/тех.карти в касі. Каса не
+    // зможе прийняти гостьову заявку на такі позиції назад, тож клієнт ховає їх з кошика.
+    orderable: item.kind !== null,
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { PLACEHOLDER_PHOTO_URL, type SerializedMenuItem } from "@/lib/menu";
 import { MenuItemLikeButton } from "@/components/MenuItemLikeButton";
 
@@ -116,7 +116,10 @@ function PlaceholderNameOverlay({ name }: { name: string }) {
   );
 }
 
-export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
+// "row" — компактний рядок (пошук, «Популярне», старі сторінки категорій): фото зліва.
+// "grid" — плитка сітки меню (MenuBrowser, T042-редизайн v2): фото зверху на всю ширину,
+// назва/ціна знизу, за зразком карток страв на еталонному сайті.
+export function MenuItemCard({ item, layout = "row" }: { item: SerializedMenuItem; layout?: "row" | "grid" }) {
   const hasNoPhoto = item.photoUrl === PLACEHOLDER_PHOTO_URL;
   const [isOpen, setIsOpen] = useState(false);
 
@@ -129,69 +132,100 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
+  const openCard = () => setIsOpen(true);
+  const cardKeyDown = (event: ReactKeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setIsOpen(true);
+    }
+  };
+  const cardProps = {
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-label": `Показати ${item.name} детальніше`,
+    onClick: openCard,
+    onKeyDown: cardKeyDown,
+  };
+
   return (
     <>
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={`Показати ${item.name} детальніше`}
-        onClick={() => setIsOpen(true)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setIsOpen(true);
-          }
-        }}
-        style={{
-          display: "flex",
-          gap: "1rem",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "1rem",
-          background: "linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9))",
-          contentVisibility: "auto",
-          containIntrinsicSize: "128px",
-          cursor: "pointer",
-        }}
-      >
-        <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
-          <img
-            src={item.photoUrl}
-            alt={item.name}
-            width={96}
-            height={96}
-            style={{ objectFit: "cover", borderRadius: 8, background: "var(--surface)" }}
-          />
-          {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-            <h3
-              style={{
-                margin: 0,
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "0.5rem",
-                minWidth: 0,
-                overflowWrap: "break-word",
-              }}
-            >
-              {item.name}
-              {item.isNew && <NewBadge />}
-            </h3>
-            <strong style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
-              {item.price} {item.currency}
-            </strong>
+      {layout === "grid" ? (
+        <article {...cardProps} className="menu-card-tile" style={{ contentVisibility: "auto", containIntrinsicSize: "220px" }}>
+          <div className="menu-card-tile__photo">
+            {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
+            <img src={item.photoUrl} alt={item.name} />
+            {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
           </div>
-          {item.description && <DescriptionClamp text={item.description} />}
-          <VolumeAbvLine item={item} />
-          <div style={{ marginTop: "0.6rem" }} onClick={(event) => event.stopPropagation()}>
-            <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+          <div className="menu-card-tile__body">
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+              <h3 style={{ margin: 0, fontSize: "0.95rem", display: "flex", flexWrap: "wrap", gap: "0.4rem", minWidth: 0 }}>
+                {item.name}
+                {item.isNew && <NewBadge />}
+              </h3>
+              <strong style={{ flexShrink: 0, whiteSpace: "nowrap", fontSize: "0.9rem" }}>
+                {item.price} {item.currency}
+              </strong>
+            </div>
+            <VolumeAbvLine item={item} />
+            <div onClick={(event) => event.stopPropagation()}>
+              <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
+      ) : (
+        <article
+          {...cardProps}
+          style={{
+            display: "flex",
+            gap: "1rem",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: "1rem",
+            background: "linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9))",
+            contentVisibility: "auto",
+            containIntrinsicSize: "128px",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
+            <img
+              src={item.photoUrl}
+              alt={item.name}
+              width={96}
+              height={96}
+              style={{ objectFit: "cover", borderRadius: 8, background: "var(--surface)" }}
+            />
+            {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h3
+                style={{
+                  margin: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                  minWidth: 0,
+                  overflowWrap: "break-word",
+                }}
+              >
+                {item.name}
+                {item.isNew && <NewBadge />}
+              </h3>
+              <strong style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+                {item.price} {item.currency}
+              </strong>
+            </div>
+            {item.description && <DescriptionClamp text={item.description} />}
+            <VolumeAbvLine item={item} />
+            <div style={{ marginTop: "0.6rem" }} onClick={(event) => event.stopPropagation()}>
+              <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+            </div>
+          </div>
+        </article>
+      )}
 
       {isOpen && (
         <div
