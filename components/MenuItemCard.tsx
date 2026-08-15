@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { PLACEHOLDER_PHOTO_URL, type SerializedMenuItem } from "@/lib/menu";
 import { MenuItemLikeButton } from "@/components/MenuItemLikeButton";
 
@@ -17,13 +17,14 @@ const toggleLinkStyle = {
 
 // Опис у списку — обрізаний до 2 рядків з інлайновою кнопкою "показати" в кінці, щоб
 // картки в списку були однакової висоти незалежно від довжини опису (на відміну від
-// модалки з фото, де опис завжди показується повністю).
+// модалки з фото, де опис завжди показується повністю). Клас menu-card__description —
+// щоб десктопна плитка (app/globals.css) могла його приховати через !important.
 function DescriptionClamp({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
 
   if (expanded) {
     return (
-      <p style={{ margin: "0.4rem 0", opacity: 0.8 }}>
+      <p className="menu-card__description" style={{ margin: "0.4rem 0", opacity: 0.8 }}>
         {text}{" "}
         <button
           type="button"
@@ -41,6 +42,7 @@ function DescriptionClamp({ text }: { text: string }) {
 
   return (
     <p
+      className="menu-card__description"
       style={{
         margin: "0.4rem 0",
         opacity: 0.8,
@@ -116,11 +118,62 @@ function PlaceholderNameOverlay({ name }: { name: string }) {
   );
 }
 
-// "row" — компактний рядок (пошук, «Популярне», старі сторінки категорій): фото зліва.
-// "grid" — плитка сітки меню (MenuBrowser, T042-редизайн v2): фото зверху на всю ширину,
-// назва/ціна знизу, за зразком карток страв на еталонному сайті.
-export function MenuItemCard({ item, layout = "row" }: { item: SerializedMenuItem; layout?: "row" | "grid" }) {
-  const hasNoPhoto = item.photoUrl === PLACEHOLDER_PHOTO_URL;
+function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.6" y1="10.6" x2="15.4" y2="6.4" />
+      <line x1="8.6" y1="13.4" x2="15.4" y2="17.6" />
+    </svg>
+  );
+}
+
+// Поділитися позицією: нативний Web Share на мобільних (де він і найкорисніший),
+// фолбек — скопіювати посилання на поточну сторінку меню в буфер обміну.
+function ShareButton({ item }: { item: SerializedMenuItem }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async (event: ReactMouseEvent) => {
+    event.stopPropagation();
+    if (typeof window === "undefined") return;
+
+    const shareData = {
+      title: item.name,
+      text: `${item.name} — ${item.price} ${item.currency}`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // Користувач закрив діалог — це не помилка.
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Буфер обміну недоступний (напр. немає дозволу) — тихо ігноруємо.
+    }
+  };
+
+  return (
+    <button type="button" onClick={handleShare} aria-label={`Поділитися ${item.name}`} className="menu-card__share">
+      {copied ? "✓" : <ShareIcon />}
+    </button>
+  );
+}
+
+export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const hasNoPhoto = item.photoUrl === PLACEHOLDER_PHOTO_URL || photoFailed;
+  const photoSrc = photoFailed ? PLACEHOLDER_PHOTO_URL : item.photoUrl;
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -132,100 +185,44 @@ export function MenuItemCard({ item, layout = "row" }: { item: SerializedMenuIte
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  const openCard = () => setIsOpen(true);
-  const cardKeyDown = (event: ReactKeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      setIsOpen(true);
-    }
-  };
-  const cardProps = {
-    role: "button" as const,
-    tabIndex: 0,
-    "aria-label": `Показати ${item.name} детальніше`,
-    onClick: openCard,
-    onKeyDown: cardKeyDown,
-  };
-
   return (
     <>
-      {layout === "grid" ? (
-        <article {...cardProps} className="menu-card-tile" style={{ contentVisibility: "auto", containIntrinsicSize: "220px" }}>
-          <div className="menu-card-tile__photo">
-            {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
-            <img src={item.photoUrl} alt={item.name} />
-            {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
+      <article
+        role="button"
+        tabIndex={0}
+        aria-label={`Показати ${item.name} детальніше`}
+        onClick={() => setIsOpen(true)}
+        onKeyDown={(event: ReactKeyboardEvent) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
+        className="menu-card"
+      >
+        <div className="menu-card__photo">
+          {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
+          <img src={photoSrc} alt={item.name} onError={() => setPhotoFailed(true)} />
+          {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
+        </div>
+        <div className="menu-card__body">
+          <div className="menu-card__heading">
+            <h3 className="menu-card__name">
+              {item.name}
+              {item.isNew && <NewBadge />}
+            </h3>
+            <strong className="menu-card__price">
+              {item.price} {item.currency}
+            </strong>
           </div>
-          <div className="menu-card-tile__body">
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
-              <h3 style={{ margin: 0, fontSize: "0.95rem", display: "flex", flexWrap: "wrap", gap: "0.4rem", minWidth: 0 }}>
-                {item.name}
-                {item.isNew && <NewBadge />}
-              </h3>
-              <strong style={{ flexShrink: 0, whiteSpace: "nowrap", fontSize: "0.9rem" }}>
-                {item.price} {item.currency}
-              </strong>
-            </div>
-            <VolumeAbvLine item={item} />
-            <div onClick={(event) => event.stopPropagation()}>
-              <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
-            </div>
+          {item.description && <DescriptionClamp text={item.description} />}
+          <VolumeAbvLine item={item} />
+          <div className="menu-card__actions" onClick={(event) => event.stopPropagation()}>
+            <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+            <ShareButton item={item} />
           </div>
-        </article>
-      ) : (
-        <article
-          {...cardProps}
-          style={{
-            display: "flex",
-            gap: "1rem",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "1rem",
-            background: "linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9))",
-            contentVisibility: "auto",
-            containIntrinsicSize: "128px",
-            cursor: "pointer",
-          }}
-        >
-          <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
-            <img
-              src={item.photoUrl}
-              alt={item.name}
-              width={96}
-              height={96}
-              style={{ objectFit: "cover", borderRadius: 8, background: "var(--surface)" }}
-            />
-            {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h3
-                style={{
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "0.5rem",
-                  minWidth: 0,
-                  overflowWrap: "break-word",
-                }}
-              >
-                {item.name}
-                {item.isNew && <NewBadge />}
-              </h3>
-              <strong style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
-                {item.price} {item.currency}
-              </strong>
-            </div>
-            {item.description && <DescriptionClamp text={item.description} />}
-            <VolumeAbvLine item={item} />
-            <div style={{ marginTop: "0.6rem" }} onClick={(event) => event.stopPropagation()}>
-              <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
-            </div>
-          </div>
-        </article>
-      )}
+        </div>
+      </article>
 
       {isOpen && (
         <div
@@ -297,8 +294,9 @@ export function MenuItemCard({ item, layout = "row" }: { item: SerializedMenuIte
             <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- див. коментар вище */}
               <img
-                src={item.photoUrl}
+                src={photoSrc}
                 alt={item.name}
+                onError={() => setPhotoFailed(true)}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -322,8 +320,9 @@ export function MenuItemCard({ item, layout = "row" }: { item: SerializedMenuIte
               </div>
               {item.description && <p style={{ marginTop: "0.6rem", opacity: 0.85 }}>{item.description}</p>}
               <VolumeAbvLine item={item} />
-              <div style={{ marginTop: "1rem" }}>
+              <div style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+                <ShareButton item={item} />
               </div>
             </div>
           </div>

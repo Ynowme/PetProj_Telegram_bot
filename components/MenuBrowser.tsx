@@ -213,7 +213,7 @@ function MenuSectionBlock({
       ) : (
         <div className="menu-item-grid">
           {items.map((item) => (
-            <MenuItemCard key={item.id} item={item} layout="grid" />
+            <MenuItemCard key={item.id} item={item} />
           ))}
         </div>
       )}

@@ -2,16 +2,24 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { PromoCarousel } from "@/components/PromoCarousel";
 import { SiteHeaderNav } from "@/components/SiteHeaderNav";
+import { SiteHeaderShell } from "@/components/SiteHeaderShell";
 import type { NavItem } from "@/lib/nav";
 import { getActivePromoBanners } from "@/lib/promo-banners";
 import { getSiteContent } from "@/lib/site-content";
+import { getFavoriteCount } from "@/lib/favorites";
 
 export async function SiteHeader() {
-  const [session, banners, siteContent] = await Promise.all([auth(), getActivePromoBanners(), getSiteContent()]);
+  const [session, banners, siteContent, favoriteCount] = await Promise.all([
+    auth(),
+    getActivePromoBanners(),
+    getSiteContent(),
+    getFavoriteCount(),
+  ]);
 
   const navItems: NavItem[] = [
     { label: "Меню", href: "/menu" },
     { label: "Популярне", href: "/menu/popular" },
+    { label: favoriteCount > 0 ? `Обрані (${favoriteCount})` : "Обрані", href: "/menu/favorites" },
     { label: "Залишити відгук", href: "/feedback" },
     ...(session?.user
       ? [
@@ -28,7 +36,7 @@ export async function SiteHeader() {
     // елемент: position:sticky обмежена висотою свого батька, а батько тут — <header> — був
     // би заввишки "шапка + карусель" і липкість зникала б одразу за каруселлю.
     <>
-      <header className="site-header__sticky">
+      <SiteHeaderShell>
         <div className="site-header__bar">
           <Link href="/" style={{ display: "inline-flex" }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- лого з CastaPOS-адмінки або статичний фолбек-бейдж */}
@@ -36,7 +44,7 @@ export async function SiteHeader() {
           </Link>
           <SiteHeaderNav items={navItems} />
         </div>
-      </header>
+      </SiteHeaderShell>
       <PromoCarousel banners={banners} />
     </>
   );

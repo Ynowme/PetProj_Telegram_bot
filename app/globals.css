@@ -329,11 +329,95 @@ button:focus-visible {
   letter-spacing: -0.04em;
 }
 
+/* Єдина картка позиції меню (MenuItemCard) — один DOM для Пошуку/Популярного/секцій
+   меню. Мобільний вигляд (рядок: фото зліва) — базовий; на десктопі всередині
+   .menu-item-grid (MenuBrowser) перетворюється в плитку через медіа-запит нижче,
+   без дублювання розмітки (T042-редизайн v3, за проханням користувача звести
+   мобільний вигляд категорій до того ж компонента-рядка, що й на «Популярному»). */
 .menu-card {
-  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
+  display: flex;
+  gap: 1rem;
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1rem;
+  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.menu-card:hover {
+  border-color: var(--border-strong);
+}
+
+.menu-card__photo {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.menu-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.menu-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-card__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.menu-card__name {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.menu-card__price {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.menu-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.menu-card__share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground-muted);
+  flex-shrink: 0;
+}
+
+.menu-card__share:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
+  background: var(--surface-hover);
 }
 
 .promo-carousel {
@@ -442,6 +526,19 @@ button:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
+/* Компактна шапка на мобільному (SiteHeaderShell перемикає клас за напрямком скролу) —
+   ховає рядок навігації, звільняючи місце під липкі вкладки меню. Тільки мобільний
+   брейкпоінт: на десктопі клас не дає жодного візуального ефекту. */
+@media (max-width: 767px) {
+  .site-header__sticky--compact .site-header__nav {
+    display: none;
+  }
+
+  .site-header__sticky--compact .site-header__bar {
+    padding-block: 0.5rem;
+  }
+}
+
 /* Сторінка меню суцільним скролом (MenuBrowser) — липка навігація по категоріях
    і плиткова сітка позицій, замість окремих сторінок на категорію (T042-редизайн v2). */
 .menu-tabs {
@@ -508,43 +605,49 @@ button:focus-visible {
 }
 
 .menu-item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 
-.menu-card-tile {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
-  cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
+/* Плитка 2+ колонки лишається лише на десктопі — на мобільному однакова з
+   Пошуком/Популярним вертикальна стрічка карток-рядків (.menu-card вище). */
+@media (min-width: 768px) {
+  .menu-item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+  }
 
-.menu-card-tile:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
-}
+  .menu-item-grid .menu-card {
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
 
-.menu-card-tile__photo {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: var(--surface);
-}
+  .menu-item-grid .menu-card:hover {
+    transform: translateY(-2px);
+  }
 
-.menu-card-tile__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
+  .menu-item-grid .menu-card__photo {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 0;
+  }
 
-.menu-card-tile__body {
-  padding: 0.75rem 0.85rem 0.9rem;
-  display: grid;
-  gap: 0.3rem;
+  .menu-item-grid .menu-card__body {
+    padding: 0.75rem 0.85rem 0.9rem;
+  }
+
+  .menu-item-grid .menu-card__name {
+    font-size: 0.95rem;
+  }
+
+  /* Опис ховаємо тільки в плитці — картка-рядок на мобільному його показує.
+     !important навмисно: DescriptionClamp керує display інлайн-стилем для
+     лінійного обрізання тексту, зовнішній клас інакше його не перебʼє. */
+  .menu-item-grid .menu-card__description {
+    display: none !important;
+  }
 }
