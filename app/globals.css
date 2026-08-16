@@ -546,6 +546,49 @@ button:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
+/* /promotions — повний перелік акцій (app/(public)/promotions/page.tsx), відкривається
+   кліком по promo-carousel. Одна колонка карток фото+повний текст, на відміну від
+   .menu-card опис тут НЕ обрізається DescriptionClamp — сторінка сама і є "повна версія". */
+.promo-page__grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.promo-page__card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(29, 33, 40, 0.9), rgba(14, 16, 21, 0.9));
+}
+
+.promo-page__card-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--surface);
+}
+
+.promo-page__card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.promo-page__card-body {
+  padding: 1.25rem;
+}
+
+.promo-page__card-body h2 {
+  margin: 0 0 0.5rem;
+}
+
+.promo-page__card-body p {
+  margin: 0;
+  color: var(--foreground-muted);
+}
+
 .promo-carousel__content {
   position: relative;
   z-index: 1;

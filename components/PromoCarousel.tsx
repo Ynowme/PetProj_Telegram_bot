@@ -1,12 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useRouter } from "next/navigation";
 import { BlurText } from "@/components/BlurText";
 
 export type PromoBanner = { id: string; title: string; description: string | null; imageUrl: string | null };
 
-// FR-008: свайпаемая карусель баннеров; при одном баннере переключение недоступно.
+// FR-008: свайпаемая карусель баннеров; при одном баннере переключение недоступно. Клік по
+// банеру (крім стрілок ‹›) веде на /promotions — повний перелік акцій з фото та описом без
+// обрізання. Той самий патерн "клікована картка з вкладеними кнопками, що зупиняють
+// спливання", що MenuItemCard.tsx: тут теж role="button" на div, а не <Link>, бо вкладені
+// <button> (стрілки) всередині <a> — невалідний HTML.
 export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -15,8 +21,15 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
   const canNavigate = banners.length > 1;
   const banner = banners[index % banners.length];
 
-  const goPrev = () => setIndex((i) => (i - 1 + banners.length) % banners.length);
-  const goNext = () => setIndex((i) => (i + 1) % banners.length);
+  const goPrev = (event?: ReactMouseEvent) => {
+    event?.stopPropagation();
+    setIndex((i) => (i - 1 + banners.length) % banners.length);
+  };
+  const goNext = (event?: ReactMouseEvent) => {
+    event?.stopPropagation();
+    setIndex((i) => (i + 1) % banners.length);
+  };
+  const openPromotions = () => router.push("/promotions");
 
   const handleTouchStart = (event: React.TouchEvent) => {
     touchStartX.current = event.touches[0].clientX;
@@ -35,6 +48,16 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
   return (
     <div
       className="promo-carousel"
+      role="button"
+      tabIndex={0}
+      aria-label="Переглянути всі акції"
+      onClick={openPromotions}
+      onKeyDown={(event: ReactKeyboardEvent) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openPromotions();
+        }
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
@@ -42,6 +65,7 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
         overflow: "hidden",
         background: "var(--surface)",
         borderBottom: "1px solid var(--border)",
+        cursor: "pointer",
       }}
     >
       {banner.imageUrl ? (
