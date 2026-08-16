@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 
 type StartResponse = { token: string; deepLink: string | null; expiresAt: string };
@@ -8,18 +8,6 @@ type StatusResponse = { status: "PENDING" | "CONFIRMED" | "EXPIRED" };
 
 const POLL_INTERVAL_MS = 2000;
 const HINT_DELAY_MS = 15000;
-
-const buttonLinkStyle: CSSProperties = {
-  display: "inline-block",
-  color: "var(--foreground)",
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
-  padding: "0.6rem 1rem",
-  font: "inherit",
-  textDecoration: "none",
-  textAlign: "center",
-};
 
 // Вхід через реального Telegram-бота (deep link, FR-004): на відміну від Login Widget,
 // t.me/<bot>?start=<token> завжди відкриває саме застосунок Telegram, а не веб-версію.
@@ -122,8 +110,12 @@ export function TelegramBotLoginButton({ callbackUrl = "/account" }: { callbackU
         target="_blank"
         rel="noopener noreferrer"
         onClick={deepLink ? handleOpen : (event) => event.preventDefault()}
-        style={{ ...buttonLinkStyle, opacity: deepLink ? 1 : 0.6, pointerEvents: deepLink ? "auto" : "none" }}
+        className="telegram-login-btn"
+        style={{ opacity: deepLink ? 1 : 0.6, pointerEvents: deepLink ? "auto" : "none" }}
       >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21.05 3.79a1.5 1.5 0 0 0-1.56-.24L2.98 10.4a1.4 1.4 0 0 0 .1 2.62l4.29 1.39 1.65 5.31a1 1 0 0 0 1.7.4l2.42-2.5 4.44 3.28a1.4 1.4 0 0 0 2.22-.85l3.02-14.4a1.5 1.5 0 0 0-.77-1.86ZM9.9 13.87l-1.02 3.3-.93-3.01 9.98-6.32-8.03 6.03Z" />
+        </svg>
         Увійти через Telegram
       </a>
       {status === "waiting" && (

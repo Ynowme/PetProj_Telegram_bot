@@ -40,6 +40,12 @@ export default async function AccountOverviewPage() {
         <Link href="/account/profile" className="category-block">
           Профіль
         </Link>
+        <Link href="/menu/favorites" className="category-block">
+          Обрані
+        </Link>
+        <Link href="/feedback" className="category-block">
+          Залишити відгук
+        </Link>
       </nav>
     </main>
   );

@@ -9,7 +9,7 @@ export default async function MenuLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="menu-layout">
-      <div>
+      <div className="menu-layout__main">
         <MenuSearch />
         {children}
       </div>

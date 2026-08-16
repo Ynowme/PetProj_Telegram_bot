@@ -155,6 +155,97 @@ button:focus-visible {
   padding: 1.5rem;
 }
 
+.telegram-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.85rem 1.25rem;
+  background: var(--accent-bright);
+  color: var(--accent-contrast);
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.telegram-login-btn:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Верхня панель "назад + заголовок" на весь екран (login-переклик з choiceqr /auth) —
+   на відміну від .back-link (текстова стрілка над панеллю), тут повноширинна смуга
+   з круглою кнопкою назад і центрованим заголовком, як у reference-застосунку. */
+.auth-topbar {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -2.5rem -1.5rem 2rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-topbar__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: var(--foreground);
+}
+
+.auth-topbar__title {
+  text-align: center;
+  font-weight: 600;
+}
+
+.auth-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card img {
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.auth-benefits {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.auth-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  color: var(--foreground-muted);
+  font-size: 0.9rem;
+}
+
+.auth-benefits svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--foreground);
+}
+
 .back-link {
   display: inline-block;
   margin-bottom: 1rem;
@@ -264,6 +355,19 @@ button:focus-visible {
   margin: 0 auto;
   padding: 2rem 1.5rem;
   align-items: start;
+}
+
+.menu-layout__main {
+  /* Grid-елементи мають дефолтний min-width:auto (не 0) — тобто НЕ стискаються вужче за
+     min-content свого вмісту. .menu-tabs всередині (MenuBrowser.tsx) — нескінченно
+     нешироко-обгортаний рядок кнопок категорій (white-space:nowrap) — саме він і задає той
+     min-content, навіть попри власний overflow-x:auto (той overflow скасовує авто-мінімум
+     лише для себе самого, а не для предків через кілька рівнів вкладеності). Без цього
+     правила вся .menu-layout-сітка (і сторінка) ставала ширшою за viewport — звідси й
+     горизонтальний скрол на мобільному, і лише на /menu (де є .menu-tabs), не на
+     /menu/popular (де його немає, нічого не форсує ширину).
+     https://www.w3.org/TR/css-grid-1/#min-size-auto */
+  min-width: 0;
 }
 
 .menu-layout__sidebar {
@@ -502,20 +606,82 @@ button:focus-visible {
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  /* SpecularButton навмисно малює світіння за краєм самої кнопки (.specular-button__fx,
+     inset:-20px) — без цього контейнменту той відступ на крайніх кнопках витікав за
+     правий/лівий край сторінки й розширював document.scrollWidth за viewport на
+     мобільному (звідси й можливість "скролити вбік"). Клипаємо саме тут (не на
+     .site-header__bar) — там же сидить .site-header__drawer, якому навпаки треба
+     виходити за межі рядка вниз. */
+  overflow: hidden;
 }
 
-@media (max-width: 600px) {
+.site-header__mobile-actions {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.site-header__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.site-header__icon-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+/* Випадаюча панель пунктів меню (гамбургер, мобільний хедер) — reference відкриває для
+   цього окрему сторінку/шухляду, тут простіше: абсолютно позиційована панель під шапкою. */
+.site-header__drawer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 59;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--background-elevated);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.site-header__drawer-item {
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.site-header__drawer-item:hover {
+  background: var(--surface-hover);
+}
+
+/* Іконковий хедер на мобільному (reference: профіль + гамбургер замість рядка з
+   вкладками) — сама шапка лишається рядком (лого зліва, іконки справа), не стовпчиком. */
+@media (max-width: 767px) {
   .site-header__bar {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
+    position: relative;
     padding: 0.75rem 1rem;
   }
 
-  /* Окремий рядок під лого — горизонтальний, з переносом, а не впритул до лого. */
   .site-header__nav {
-    width: 100%;
-    justify-content: center;
+    display: none;
+  }
+
+  .site-header__mobile-actions {
+    display: flex;
   }
 
   .promo-carousel__content {
@@ -529,19 +695,6 @@ button:focus-visible {
   z-index: 60;
   background: var(--background);
   border-bottom: 1px solid var(--border);
-}
-
-/* Компактна шапка на мобільному (SiteHeaderShell перемикає клас за напрямком скролу) —
-   ховає рядок навігації, звільняючи місце під липкі вкладки меню. Тільки мобільний
-   брейкпоінт: на десктопі клас не дає жодного візуального ефекту. */
-@media (max-width: 767px) {
-  .site-header__sticky--compact .site-header__nav {
-    display: none;
-  }
-
-  .site-header__sticky--compact .site-header__bar {
-    padding-block: 0.5rem;
-  }
 }
 
 /* Сторінка меню суцільним скролом (MenuBrowser) — липка навігація по категоріях

@@ -45,17 +45,29 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
   const hasSubTabs = Boolean(activeTop && activeTop.children.length > 0);
 
   useEffect(() => {
+    const header = document.querySelector<HTMLElement>(".site-header__sticky");
+    const primary = primaryRef.current;
+    const secondary = secondaryRef.current;
+
     const recalc = () => {
-      const header = document.querySelector<HTMLElement>(".site-header__sticky")?.offsetHeight ?? 0;
-      const primary = primaryRef.current?.offsetHeight ?? 0;
-      const secondary = secondaryRef.current?.offsetHeight ?? 0;
-      setHeaderHeight(header);
-      setPrimaryHeight(primary);
-      setOffset(header + primary + secondary);
+      setHeaderHeight(header?.offsetHeight ?? 0);
+      setPrimaryHeight(primary?.offsetHeight ?? 0);
+      setOffset((header?.offsetHeight ?? 0) + (primary?.offsetHeight ?? 0) + (secondary?.offsetHeight ?? 0));
     };
+
     recalc();
-    window.addEventListener("resize", recalc);
-    return () => window.removeEventListener("resize", recalc);
+
+    // ResizeObserver, не window "resize" — реальна висота шапки/вкладок може змінитись без
+    // ресайзу вікна (шрифт чи CSS довантажились вже після першого виміру, наприклад), а
+    // window "resize" такі випадки пропускає. Раніше цю прогалину маскував побічний ефект
+    // SiteHeaderShell: кожна зміна напрямку скролу дисптачила синтетичний "resize", який
+    // випадково перевимірював і виправляв застряглий top:0. Тепер той дисптач прибрано
+    // (шапка більше не ховається при скролі), тож вимір має бути правильним сам по собі.
+    const observer = new ResizeObserver(recalc);
+    if (header) observer.observe(header);
+    if (primary) observer.observe(primary);
+    if (secondary) observer.observe(secondary);
+    return () => observer.disconnect();
   }, [hasSubTabs]);
 
   useEffect(() => {

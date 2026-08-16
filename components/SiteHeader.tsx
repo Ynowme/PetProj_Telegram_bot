@@ -6,21 +6,16 @@ import { SiteHeaderShell } from "@/components/SiteHeaderShell";
 import type { NavItem } from "@/lib/nav";
 import { getActivePromoBanners } from "@/lib/promo-banners";
 import { getSiteContent } from "@/lib/site-content";
-import { getFavoriteCount } from "@/lib/favorites";
 
+// "Обрані" й "Залишити відгук" прибрані звідси (2026-08-16) — обидва переїхали в
+// особистий кабінет (app/(account)/account/page.tsx), у головній навігації лишились
+// лише пункти, доступні й гостю без входу.
 export async function SiteHeader() {
-  const [session, banners, siteContent, favoriteCount] = await Promise.all([
-    auth(),
-    getActivePromoBanners(),
-    getSiteContent(),
-    getFavoriteCount(),
-  ]);
+  const [session, banners, siteContent] = await Promise.all([auth(), getActivePromoBanners(), getSiteContent()]);
 
   const navItems: NavItem[] = [
     { label: "Меню", href: "/menu" },
     { label: "Популярне", href: "/menu/popular" },
-    { label: favoriteCount > 0 ? `Обрані (${favoriteCount})` : "Обрані", href: "/menu/favorites" },
-    { label: "Залишити відгук", href: "/feedback" },
     ...(session?.user
       ? [
           { label: "Кабінет", href: "/account" },
