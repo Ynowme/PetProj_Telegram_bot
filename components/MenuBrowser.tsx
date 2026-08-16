@@ -163,17 +163,19 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
         </Link>
       </div>
 
-      <div ref={primaryRef} className="menu-tabs menu-tabs--primary" style={{ top: headerHeight }}>
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={`menu-tab${section.slug === activeTopSlug ? " menu-tab--active" : ""}`}
-            onClick={() => scrollToSection(section.children.length > 0 ? section.children[0].slug : section.slug)}
-          >
-            {section.name}
-          </button>
-        ))}
+      <div ref={primaryRef} className="menu-tabs-wrap menu-tabs-wrap--primary" style={{ top: headerHeight }}>
+        <div className="menu-tabs menu-tabs--primary">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={`menu-tab${section.slug === activeTopSlug ? " menu-tab--active" : ""}`}
+              onClick={() => scrollToSection(section.children.length > 0 ? section.children[0].slug : section.slug)}
+            >
+              {section.name}
+            </button>
+          ))}
+        </div>
         <button type="button" className="menu-tabs__more" aria-label="Усі категорії" onClick={() => setIsCategoryMenuOpen(true)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="5" cy="12" r="2" />
@@ -213,17 +215,19 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
       )}
 
       {hasSubTabs && activeTop && (
-        <div ref={secondaryRef} className="menu-tabs menu-tabs--secondary" style={{ top: headerHeight + primaryHeight }}>
-          {activeTop.children.map((child) => (
-            <button
-              key={child.id}
-              type="button"
-              className={`menu-tab menu-tab--sub${child.slug === activeSlug ? " menu-tab--active" : ""}`}
-              onClick={() => scrollToSection(child.slug)}
-            >
-              {child.name}
-            </button>
-          ))}
+        <div ref={secondaryRef} className="menu-tabs-wrap menu-tabs-wrap--secondary" style={{ top: headerHeight + primaryHeight }}>
+          <div className="menu-tabs menu-tabs--secondary">
+            {activeTop.children.map((child) => (
+              <button
+                key={child.id}
+                type="button"
+                className={`menu-tab menu-tab--sub${child.slug === activeSlug ? " menu-tab--active" : ""}`}
+                onClick={() => scrollToSection(child.slug)}
+              >
+                {child.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -658,23 +658,77 @@ button:focus-visible {
   z-index: 59;
   display: grid;
   gap: 0.25rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem 1.25rem;
+  max-height: 85dvh;
+  overflow-y: auto;
   background: var(--background-elevated);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
 .site-header__drawer-item {
+  display: block;
+  width: 100%;
   text-align: left;
   border: none;
   background: transparent;
   padding: 0.75rem 0.5rem;
   border-radius: 8px;
   font-size: 0.95rem;
+  color: var(--foreground);
 }
 
 .site-header__drawer-item:hover {
   background: var(--surface-hover);
+}
+
+/* CTA-картка входу/кабінету (reference: "Авторизуйтесь" окремим боксом зверху шухляди,
+   а не просто рядком у списку). */
+.site-header__drawer-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.site-header__drawer-cta:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.site-header__drawer-cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--background-elevated);
+}
+
+.site-header__drawer-section-title {
+  margin: 0.75rem 0.5rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  color: var(--foreground-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.site-header__drawer-socials {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.5rem 0.5rem 0;
 }
 
 /* Іконковий хедер на мобільному (reference: профіль + гамбургер замість рядка з
@@ -707,17 +761,40 @@ button:focus-visible {
 }
 
 /* Сторінка меню суцільним скролом (MenuBrowser) — липка навігація по категоріях
-   і плиткова сітка позицій, замість окремих сторінок на категорію (T042-редизайн v2). */
-.menu-tabs {
+   і плиткова сітка позицій, замість окремих сторінок на категорію (T042-редизайн v2).
+   .menu-tabs-wrap — липкий (position:sticky) РЯДОК: скролима стрічка пігулок + кнопка
+   "…" як звичайний flex-сусід ЗА МЕЖАМИ скрол-контейнера. Раніше кнопку намагались
+   приліпити ВСЕРЕДИНІ .menu-tabs через власний position:sticky по правому краю — на
+   реальному мобільному Chrome це не спрацювало (кнопка просто пливла разом з пігулками,
+   звіт користувача 2026-08-16 зі скріном), тож замінено на найнадійніший патерн:
+   кнопка взагалі не в scroll-контейнері, тому й не може в ньому "поплисти". */
+.menu-tabs-wrap {
   position: sticky;
   z-index: 50;
+  display: flex;
+  align-items: center;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-tabs-wrap--secondary {
+  background: var(--background-elevated);
+}
+
+.menu-tabs {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
   scrollbar-width: none;
   padding: 0.6rem 1.5rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
+  /* Ефект "стрічки" (reference) — текст пігулок біля країв плавно тоне в тінь замість
+     різкого обрізання рамкою. Симетрична маска на обох краях (не лише там, де реально
+     ще є вміст для скролу) — найпростіший варіант без відстеження позиції скролу через
+     JS, і саме так виглядає на референсі й у стані спокою. */
+  mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
 }
 
 .menu-tabs::-webkit-scrollbar {
@@ -727,7 +804,6 @@ button:focus-visible {
 .menu-tabs--secondary {
   padding-block: 0.45rem;
   gap: 0.4rem;
-  background: var(--background-elevated);
 }
 
 .menu-tab {
@@ -771,9 +847,6 @@ button:focus-visible {
    по іншій осі. Суцільний фон, щоб пігулки, які проїжджають під низом, не просвічували.
    Легкий градієнт зліва — щоб було видно, що під кнопкою ще є вкладки. */
 .menu-tabs__more {
-  position: sticky;
-  right: 0;
-  z-index: 1;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -781,12 +854,11 @@ button:focus-visible {
   width: 34px;
   height: 34px;
   padding: 0;
-  margin-left: 0.25rem;
+  margin-right: 1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--background);
+  background: var(--surface);
   color: var(--foreground);
-  box-shadow: -12px 0 12px -4px var(--background);
 }
 
 .menu-tabs__more:hover {

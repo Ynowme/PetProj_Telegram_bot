@@ -37,7 +37,20 @@ export async function SiteHeader() {
             {/* eslint-disable-next-line @next/next/no-img-element -- лого з CastaPOS-адмінки або статичний фолбек-бейдж */}
             <img src={siteContent?.logoUrl ?? "/logo.svg"} alt={siteContent?.venueName ?? "Логотип закладу"} width={48} height={48} />
           </Link>
-          <SiteHeaderNav items={navItems} />
+          <SiteHeaderNav
+            items={navItems}
+            contact={
+              siteContent && {
+                address: siteContent.address,
+                addressMapUrl: siteContent.addressMapUrl,
+                phone: siteContent.phone,
+                instagramUrl: siteContent.instagramUrl,
+                facebookUrl: siteContent.facebookUrl,
+                googleUrl: siteContent.googleUrl,
+                telegramUrl: siteContent.telegramUrl,
+              }
+            }
+          />
         </div>
       </SiteHeaderShell>
       <PromoCarousel banners={banners} />
