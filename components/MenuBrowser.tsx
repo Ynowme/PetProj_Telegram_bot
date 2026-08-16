@@ -24,6 +24,10 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
   );
 
   const [activeSlug, setActiveSlug] = useState(trackedSections[0]?.slug ?? "");
+  // Кнопка "…" на липкій стрічці категорій (reference: easy.choiceqr.com) — повний список
+  // усіх топ-категорій із підкатегоріями для швидкого переходу, коли сама стрічка не
+  // вміщає всі пункти й доводиться скролити вбік.
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   // Хеш адреси на момент першого рендеру (до будь-яких ефектів) — інакше ефект
   // синхронізації activeSlug->URL нижче встигає замінити його дефолтною секцією
   // раніше, ніж ми встигнемо його прочитати й проскролити до потрібного розділу.
@@ -137,6 +141,20 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
     target.scrollIntoView({ behavior: "smooth" });
   }
 
+  function selectFromCategoryMenu(slug: string) {
+    setIsCategoryMenuOpen(false);
+    scrollToSection(slug);
+  }
+
+  useEffect(() => {
+    if (!isCategoryMenuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsCategoryMenuOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isCategoryMenuOpen]);
+
   return (
     <div className="menu-browser">
       <div className="category-grid" style={{ marginTop: "1rem", marginBottom: "1rem" }}>
@@ -156,7 +174,43 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
             {section.name}
           </button>
         ))}
+        <button type="button" className="menu-tabs__more" aria-label="Усі категорії" onClick={() => setIsCategoryMenuOpen(true)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </button>
       </div>
+
+      {isCategoryMenuOpen && (
+        <div role="presentation" className="menu-tabs__overlay" onClick={() => setIsCategoryMenuOpen(false)}>
+          <div className="menu-tabs__overlay-header">
+            <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Категорії</h2>
+            <button type="button" onClick={() => setIsCategoryMenuOpen(false)} aria-label="Закрити">
+              Закрити ✕
+            </button>
+          </div>
+          <div className="menu-tabs__overlay-body" onClick={(event) => event.stopPropagation()}>
+            {sections.map((section) => (
+              <div key={section.id}>
+                <button
+                  type="button"
+                  className="menu-tabs__overlay-top"
+                  onClick={() => selectFromCategoryMenu(section.children.length > 0 ? section.children[0].slug : section.slug)}
+                >
+                  {section.name}
+                </button>
+                {section.children.map((child) => (
+                  <button key={child.id} type="button" className="menu-tabs__overlay-sub" onClick={() => selectFromCategoryMenu(child.slug)}>
+                    {child.name}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasSubTabs && activeTop && (
         <div ref={secondaryRef} className="menu-tabs menu-tabs--secondary" style={{ top: headerHeight + primaryHeight }}>
