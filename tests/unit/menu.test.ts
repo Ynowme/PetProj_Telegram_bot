@@ -13,6 +13,7 @@ function makeItem(overrides: Partial<MenuItem> = {}) {
     photoUrl: "https://example.com/photo.jpg",
     volume: "300 мл",
     abv: null,
+    kind: "recipe",
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -35,6 +36,7 @@ describe("serializeMenuItem", () => {
       abv: 12.5,
       likesCount: 4,
       isNew: true,
+      orderable: true,
     });
   });
 
@@ -42,5 +44,10 @@ describe("serializeMenuItem", () => {
     const serialized = serializeMenuItem({ ...makeItem(), _count: { likes: 0 } });
     expect(serialized.abv).toBeNull();
     expect(serialized.likesCount).toBe(0);
+  });
+
+  it("marks items without a POS kind (imported directly, not synced from CastaPOS) as not orderable", () => {
+    const serialized = serializeMenuItem({ ...makeItem({ kind: null }), _count: { likes: 0 } });
+    expect(serialized.orderable).toBe(false);
   });
 });

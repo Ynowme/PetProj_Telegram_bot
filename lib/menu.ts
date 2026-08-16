@@ -109,9 +109,9 @@ export function serializeMenuItem(item: MenuItemWithLikeCount) {
     abv: item.abv !== null ? Number(item.abv) : null,
     likesCount: item._count.likes,
     isNew: item.createdAt >= newItemCutoff(),
-    // Завжди true, поки MenuItem.kind (гостьові заявки на замовлення) ще не в задеплоєній
-    // схемі — колонка існує лише в локальній незакомміченій міграції guest_ordering.
-    orderable: true,
+    // Позиції без kind — імпортовані напряму в PetProj (scripts/import-menu.ts), а не синкнуті з
+    // CastaPOS: каса про них нічого не знає й не зможе прийняти назад гостьову заявку.
+    orderable: item.kind !== null,
   };
 }
 

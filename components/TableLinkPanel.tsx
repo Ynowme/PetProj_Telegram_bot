@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type ReceiptItem = { name: string; price: number; quantity: number };
@@ -30,6 +31,7 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [guestOrderingEnabled, setGuestOrderingEnabled] = useState(false);
   const autoSubmitted = useRef(false);
 
   useEffect(() => {
@@ -39,6 +41,12 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
         if (data) setStatus(data);
       });
   }, [reloadKey]);
+
+  useEffect(() => {
+    fetch("/api/site-content")
+      .then((response) => (response.ok ? (response.json() as Promise<{ guestOrderingEnabled?: boolean | null }>) : null))
+      .then((data) => setGuestOrderingEnabled(Boolean(data?.guestOrderingEnabled)));
+  }, []);
 
   const submit = async (code: string) => {
     setError(null);
@@ -82,6 +90,12 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
       <h1 style={{ marginTop: 0 }}>Прив&apos;язка до столу</h1>
 
       {status && <p className="text-muted">{STATUS_LABEL[status.status]}</p>}
+
+      {status?.status === "CONFIRMED" && guestOrderingEnabled && (
+        <Link href="/account/table/order" className="pill pill--accent" style={{ marginTop: "1rem", display: "inline-flex" }}>
+          Замовити
+        </Link>
+      )}
 
       {status?.status === "CONFIRMED" && (
         <div style={{ marginTop: "1rem" }}>

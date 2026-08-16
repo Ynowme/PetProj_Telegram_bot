@@ -73,13 +73,14 @@ export async function upsertMenuItem(payload: MenuSyncUpsertPayload): Promise<vo
 
   await prisma.menuItem.upsert({
     where: { posExternalId: payload.itemExternalId },
-    update: { name: payload.name, price: payload.price, photoUrl: payload.photoUrl, categoryId },
+    update: { name: payload.name, price: payload.price, photoUrl: payload.photoUrl, categoryId, kind: payload.kind },
     create: {
       name: payload.name,
       price: payload.price,
       photoUrl: payload.photoUrl,
       categoryId,
       posExternalId: payload.itemExternalId,
+      kind: payload.kind,
     },
   });
 }

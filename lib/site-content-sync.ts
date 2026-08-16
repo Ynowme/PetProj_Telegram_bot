@@ -23,6 +23,7 @@ export type SiteContentPayload = {
   googleUrl?: string | null;
   telegramUrl?: string | null;
   accentColor?: string | null;
+  guestOrderingEnabled?: boolean;
   workingHoursByDay?: WorkingHoursByDay | null;
   privacyPolicyText?: string | null;
   termsOfUseText?: string | null;

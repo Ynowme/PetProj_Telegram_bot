@@ -97,11 +97,17 @@ model MenuItem {
   // Id товару/тех.карти в CastaPOS — ключ ідемпотентності для sync-вебхука, те саме, що
   // MenuCategory.posExternalId вище.
   posExternalId String? @unique
+  // "product" | "recipe" — CastaPOS шле це в кожному menu-sync payload (lib/site-sync.ts там же),
+  // тут довго не зберігалося (нема куди й нема навіщо було). Потрібне для гостьового замовлення
+  // (GuestOrderRequestItem): коли каса тягне заявку назад, їй треба знати, чи posExternalId —
+  // це Product.id чи Recipe.id, щоб додати правильну позицію в чек.
+  kind        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category MenuCategory   @relation(fields: [categoryId], references: [id])
+  category MenuCategory        @relation(fields: [categoryId], references: [id])
   likes    MenuItemLike[]
+  orderRequestItems GuestOrderRequestItem[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -146,9 +152,51 @@ model TableSession {
   user        User      @relation("TableSessionGuest", fields: [userId], references: [id])
   confirmedBy User?     @relation("TableSessionConfirmedBy", fields: [confirmedByStaffId], references: [id])
   receipts    Receipt[]
+  orderRequests GuestOrderRequest[]
 
   @@index([tableCode, status])
   @@index([userId])
+}
+
+// --- Гостьове замовлення з сайту (CONFIRMED TableSession) ---
+// Каса CastaPOS не приймає вхідних запитів (окремий репозиторій, на залізі бару) — на відміну
+// від решти інтеграції (push CastaPOS -> сайт), тут напрямок зворотний: каса сама періодично
+// тягне PENDING-заявки через GET /api/pos/guest-order-requests (lib/webhook-security.ts:
+// verifySecretToken, той самий секрет POS_WEBHOOK_SECRET) і підтверджує/відхиляє їх назад через
+// POST .../resolve. Підтверджені позиції потрапляють у звичайний чек столу на боці каси — тут
+// лишається лише історія заявки, не сам чек.
+enum GuestOrderRequestStatus {
+  PENDING
+  IMPORTED
+  REJECTED
+}
+
+model GuestOrderRequest {
+  id             String                  @id @default(cuid())
+  tableSessionId String
+  status         GuestOrderRequestStatus @default(PENDING)
+  createdAt      DateTime                @default(now())
+  resolvedAt     DateTime?
+
+  tableSession TableSession            @relation(fields: [tableSessionId], references: [id])
+  items        GuestOrderRequestItem[]
+
+  @@index([tableSessionId, status])
+}
+
+model GuestOrderRequestItem {
+  id        String  @id @default(cuid())
+  requestId String
+  menuItemId String
+  name      String  // знімок назви на момент подачі — MenuItem могли синкнути заново до підтвердження
+  price     Decimal @db.Decimal(10, 2)
+  quantity  Int
+  comment   String?
+
+  request  GuestOrderRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  menuItem MenuItem          @relation(fields: [menuItemId], references: [id])
+
+  @@index([requestId])
 }
 
 // --- Послуги для Gold Member (бронювання столу, оренда кальяну) ---
@@ -510,6 +558,10 @@ model SiteContent {
   privacyPolicyText String?
   termsOfUseText    String?
   cookiePolicyText  String?
+
+  // Кнопка "Замовити" на /account/table (GuestOrderRequest нижче) — приходить з CastaPOS
+  // AppSettings.guestOrderingEnabled. Null/false — гість лише переглядає меню, як зараз.
+  guestOrderingEnabled Boolean?
 }
 
 // Відгук гостя (FR: форма "Залишити відгук") — на відміну від решти сайт-контенту, НЕ приходить

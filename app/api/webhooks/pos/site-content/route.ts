@@ -38,6 +38,7 @@ function isValidPayload(value: unknown): value is SiteContentPayload {
     if (key in v && (typeof v[key] !== "string" || (v[key] as string).length === 0)) return false;
   }
   if ("workingHoursByDay" in v && v.workingHoursByDay !== null && !isValidWorkingHoursByDay(v.workingHoursByDay)) return false;
+  if ("guestOrderingEnabled" in v && typeof v.guestOrderingEnabled !== "boolean") return false;
   return true;
 }
 
