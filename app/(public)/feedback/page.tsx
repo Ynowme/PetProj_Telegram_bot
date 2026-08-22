@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button, Card, Checkbox, EmptyState, Input, Label, Spinner, TextArea, TextField, toast } from "@heroui/react";
 
 function StarRating({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
     <div>
-      <p style={{ margin: "0 0 0.4rem", fontWeight: 600 }}>{label}</p>
-      <div style={{ display: "flex", gap: "0.4rem" }}>
+      <p className="mb-1.5 mt-0 font-semibold text-foreground">{label}</p>
+      <div className="flex gap-1.5" role="group" aria-label={label}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -14,17 +15,9 @@ function StarRating({ label, value, onChange }: { label: string; value: number; 
             onClick={() => onChange(star)}
             aria-label={`${star} з 5`}
             aria-pressed={value >= star}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.2rem",
-              color: value >= star ? "var(--accent-bright)" : "var(--foreground-muted)",
-              borderColor: value >= star ? "var(--accent)" : undefined,
-            }}
+            className={`flex size-11 items-center justify-center rounded-full border text-xl transition active:scale-[0.95] ${
+              value >= star ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-muted hover:bg-surface-hover"
+            }`}
           >
             ★
           </button>
@@ -74,49 +67,72 @@ export default function FeedbackPage() {
       return;
     }
 
+    toast.success("Дякуємо! Ваш відгук надіслано.");
     setSubmitted(true);
   };
 
   if (submitted) {
     return (
-      <main className="page page--narrow">
-        <div className="panel">
-          <h1 style={{ marginTop: 0 }}>Дякуємо!</h1>
-          <p className="text-muted">Ваш відгук надіслано.</p>
-        </div>
+      <main className="mx-auto w-full max-w-md px-6 py-10">
+        <Card>
+          <EmptyState className="py-6 text-center">
+            <p className="m-0 text-3xl" aria-hidden>
+              ★
+            </p>
+            <h1 className="mb-1 mt-2 text-xl font-semibold text-foreground">Дякуємо!</h1>
+            <p className="m-0 text-muted">Ваш відгук надіслано.</p>
+          </EmptyState>
+        </Card>
       </main>
     );
   }
 
   return (
-    <main className="page page--narrow">
-      <div className="panel">
-        <h1 style={{ marginTop: 0 }}>Оцініть нас, будь ласка!</h1>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1.25rem" }}>
+    <main className="mx-auto w-full max-w-md px-6 py-10">
+      <Card>
+        <h1 className="mb-5 mt-0 text-2xl font-semibold tracking-tight text-foreground">Оцініть нас, будь ласка!</h1>
+        <form onSubmit={handleSubmit} className="grid gap-5">
           <StarRating label="Страви" value={dishesRating} onChange={setDishesRating} />
           <StarRating label="Сервіс" value={serviceRating} onChange={setServiceRating} />
-          <textarea
-            placeholder="Коментар (необов'язково)"
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            rows={4}
-          />
-          <label className="text-muted" style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
-            <input type="checkbox" checked={wantsContact} onChange={(event) => setWantsContact(event.target.checked)} style={{ width: "auto" }} />
-            Залишити свої контакти
-          </label>
+
+          <TextField value={comment} onChange={setComment}>
+            <Label>Коментар (необов&apos;язково)</Label>
+            <TextArea rows={4} placeholder="Поділіться враженнями" />
+          </TextField>
+
+          <Checkbox isSelected={wantsContact} onChange={setWantsContact}>
+            <Checkbox.Content>
+              <Checkbox.Control>
+                <Checkbox.Indicator />
+              </Checkbox.Control>
+              <Label>Залишити свої контакти</Label>
+            </Checkbox.Content>
+          </Checkbox>
+
           {wantsContact && (
-            <div style={{ display: "grid", gap: "0.75rem" }}>
-              <input placeholder="Ім'я" value={contactName} onChange={(event) => setContactName(event.target.value)} />
-              <input placeholder="Телефон" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} />
+            <div className="grid gap-3">
+              <TextField value={contactName} onChange={setContactName}>
+                <Label>Ім&apos;я</Label>
+                <Input placeholder="Як до вас звертатись" />
+              </TextField>
+              <TextField value={contactPhone} onChange={setContactPhone} type="tel">
+                <Label>Телефон</Label>
+                <Input placeholder="+380..." inputMode="tel" />
+              </TextField>
             </div>
           )}
-          {error && <p className="text-error">{error}</p>}
-          <button type="submit" disabled={isSubmitting}>
+
+          {error && <p className="m-0 text-sm text-danger">{error}</p>}
+
+          {/* bg-accent!/text-accent-foreground! — тимчасовий міст: легасі-правило
+              button[type="submit"] у globals.css (unlayered) інакше перекриває primary-варіант
+              білим по білому; після вичистки globals.css класи стануть просто надлишковими. */}
+          <Button type="submit" variant="primary" fullWidth isDisabled={isSubmitting} className="min-h-11 bg-accent! text-accent-foreground!">
+            {isSubmitting && <Spinner size="sm" />}
             Надіслати відгук
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </main>
   );
 }

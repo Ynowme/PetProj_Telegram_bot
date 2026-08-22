@@ -1,5 +1,21 @@
 // Спільні іконки соцмереж — раніше жили лише в SiteFooter.tsx, тепер той самий набір
 // показує й SiteHeaderNav.tsx (мобільна шухляда, reference: easy.choiceqr.com).
+
+// Кругла кнопка-посилання на соцмережу — один клас на футер і шухляду, щоб стилі
+// не розʼїжджались між двома місцями використання. 44px — мінімальна тач-ціль.
+export function SocialIconLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      className="inline-flex size-11 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-surface-hover active:scale-[0.97]"
+    >
+      {children}
+    </a>
+  );
+}
 export function InstagramIcon() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.6}>

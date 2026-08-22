@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonVariants, Card } from "@heroui/react";
 import { auth } from "@/lib/auth";
 import { getSiteContent } from "@/lib/site-content";
 
@@ -8,100 +9,50 @@ export default async function HomePage() {
 
   return (
     <main>
-      <div
-        style={{
-          position: "relative",
-          minHeight: "62vh",
-          display: "flex",
-          alignItems: "flex-end",
-          backgroundImage: `url(${siteContent?.heroImageUrl ?? "/hero-bar.jpg"})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+      <section
+        aria-labelledby="hero-heading"
+        className="relative flex min-h-[62vh] items-end bg-cover bg-center"
+        style={{ backgroundImage: `url(${siteContent?.heroImageUrl ?? "/hero-bar.jpg"})` }}
       >
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(10, 10, 12, 0.1) 0%, rgba(10, 10, 12, 0.55) 55%, rgba(10, 10, 12, 0.95) 100%)",
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            maxWidth: 720,
-            margin: "0 auto",
-            padding: "4rem 1.5rem 3rem",
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: "0.85rem",
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--foreground-muted)",
-            }}
-          >
-            {siteContent?.venueName ?? "Castaneda Smoking Bar"}
-          </p>
-          <h1
-            style={{
-              margin: "0.6rem 0 0",
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(2rem, 6vw, 3.25rem)",
-              lineHeight: 1.15,
-            }}
-          >
+        {/* Затемнення знизу — текст hero читається на будь-якому фото. */}
+        <div aria-hidden className="absolute inset-0 bg-linear-to-b from-background/10 via-background/55 to-background/95" />
+        <div className="relative mx-auto w-full max-w-[720px] px-6 pb-12 pt-16 text-center">
+          <p className="m-0 text-sm uppercase tracking-[0.18em] text-muted">{siteContent?.venueName ?? "Castaneda Smoking Bar"}</p>
+          <h1 id="hero-heading" className="mb-0 mt-2.5 text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl">
             {siteContent?.tagline ?? "Місце, куди хочеться повертатися знову і знову"}
           </h1>
 
-          <div className="hero-cta">
-            <Link href="/menu" className="pill pill--accent">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/menu" className={buttonVariants({ variant: "primary", size: "lg" })}>
               Переглянути меню
             </Link>
-            <Link href={session?.user ? "/account" : "/login"} className="pill">
+            <Link href={session?.user ? "/account" : "/login"} className={buttonVariants({ variant: "secondary", size: "lg" })}>
               {session?.user ? "Особистий кабінет" : "Увійти"}
             </Link>
           </div>
         </div>
-      </div>
+      </section>
 
       {siteContent?.aboutText && (
-        <p
-          style={{
-            maxWidth: 720,
-            margin: "2rem auto 0",
-            padding: "0 1.5rem 2rem",
-            textAlign: "center",
-            fontSize: "1.05rem",
-            color: "var(--foreground-muted)",
-          }}
-        >
-          {siteContent.aboutText}
-        </p>
+        <section aria-label="Про заклад" className="mx-auto max-w-[720px] px-6 pb-8 pt-8">
+          <p className="m-0 text-center text-lg leading-7 text-muted">{siteContent.aboutText}</p>
+        </section>
       )}
 
       {siteContent && (
-        <div
-          className="panel"
-          style={{
-            maxWidth: 420,
-            margin: "0 auto 3rem",
-            textAlign: "center",
-            display: "grid",
-            gap: "0.5rem",
-          }}
-        >
-          <a href={siteContent.addressMapUrl} target="_blank" rel="noreferrer">
-            📍 {siteContent.address}
-          </a>
-          <p style={{ margin: 0, color: "var(--foreground-muted)" }}>🕐 {siteContent.workingHours}</p>
-        </div>
+        <section aria-label="Адреса та години роботи" className="mx-auto mb-12 w-full max-w-[420px] px-6">
+          <Card className="grid gap-2 text-center">
+            <a
+              href={siteContent.addressMapUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground transition hover:text-muted"
+            >
+              📍 {siteContent.address}
+            </a>
+            <p className="m-0 text-muted">🕐 {siteContent.workingHours}</p>
+          </Card>
+        </section>
       )}
     </main>
   );

@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 import { getSiteContent } from "@/lib/site-content";
+import { LegalArticle } from "@/components/LegalArticle";
 
 export default async function TermsOfUsePage() {
   const siteContent = await getSiteContent();
   if (!siteContent?.termsOfUseText) notFound();
 
-  return (
-    <main className="page">
-      <h1>Умови користування</h1>
-      <p style={{ whiteSpace: "pre-wrap" }}>{siteContent.termsOfUseText}</p>
-    </main>
-  );
+  return <LegalArticle title="Умови користування" text={siteContent.termsOfUseText} />;
 }

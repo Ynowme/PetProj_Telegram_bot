@@ -1,0 +1,5 @@
+/* Tailwind 4 + HeroUI v3 — той самий стек і та сама стокова темна тема, що й у
+   CastaPOS. @heroui/styles всередині імпортує повний tailwindcss (preflight,
+   theme, utilities) і оголошує семантичні токени (--background, --surface,
+   --accent …) у @layer theme. */
+@import "@heroui/styles";

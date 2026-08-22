@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { auth } from "@/lib/auth";
 import { TableLinkPanel } from "@/components/TableLinkPanel";
 import { TelegramBotLoginButton } from "@/components/TelegramBotLoginButton";
@@ -11,17 +12,19 @@ export default async function TableQrPage({ params }: { params: Promise<{ code: 
   const session = await auth();
 
   return (
-    <main className="page page--narrow">
+    <main className="mx-auto w-full max-w-md px-4 py-8">
       {session?.user?.id ? (
         <TableLinkPanel initialCode={code} />
       ) : (
-        <div className="panel">
-          <h1 style={{ marginTop: 0 }}>Стіл {code}</h1>
-          <p className="text-muted">Увійдіть, щоб привʼязати цей стіл до свого акаунту.</p>
-          <div style={{ marginTop: "1rem" }}>
+        <Card>
+          <Card.Content className="grid gap-4">
+            <div className="grid gap-1">
+              <h1 className="text-2xl font-semibold text-foreground">Стіл {code}</h1>
+              <p className="text-sm text-muted">Увійдіть, щоб привʼязати цей стіл до свого акаунту.</p>
+            </div>
             <TelegramBotLoginButton callbackUrl={`/t/${code}`} />
-          </div>
-        </div>
+          </Card.Content>
+        </Card>
       )}
     </main>
   );

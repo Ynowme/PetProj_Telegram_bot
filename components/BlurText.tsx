@@ -79,7 +79,7 @@ export function BlurText({
     <p ref={ref} className={className}>
       {elements.map((segment, index) => (
         <motion.span
-          className="blur-text__segment"
+          className="inline-block will-change-[transform,filter,opacity]"
           key={`${segment}-${index}`}
           initial={from}
           animate={inView ? buildKeyframes(from, to) : from}

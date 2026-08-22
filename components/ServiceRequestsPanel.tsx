@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import {
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Label,
+  Skeleton,
+  Spinner,
+  TextArea,
+  TextField,
+  toast,
+} from "@heroui/react";
 
 type RequestType = "TABLE_BOOKING" | "HOOKAH_RENTAL";
 type RequestStatus = "PENDING" | "CONFIRMED" | "REJECTED";
@@ -20,10 +32,12 @@ const TYPE_LABEL: Record<RequestType, string> = {
   HOOKAH_RENTAL: "Оренда кальяну",
 };
 
-const STATUS_LABEL: Record<RequestStatus, string> = {
-  PENDING: "Очікує підтвердження",
-  CONFIRMED: "Підтверджено",
-  REJECTED: "Відхилено",
+// Статуси заявок мапляться на семантичні кольори Chip: очікування — warning,
+// підтверджено — success, відмова — danger.
+const STATUS_CHIP: Record<RequestStatus, { label: string; color: "warning" | "success" | "danger" }> = {
+  PENDING: { label: "Очікує підтвердження", color: "warning" },
+  CONFIRMED: { label: "Підтверджено", color: "success" },
+  REJECTED: { label: "Відхилено", color: "danger" },
 };
 
 function TableBookingForm({ onSent }: { onSent: () => void }) {
@@ -31,8 +45,6 @@ function TableBookingForm({ onSent }: { onSent: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     fetch("/api/account/tables")
@@ -45,10 +57,9 @@ function TableBookingForm({ onSent }: { onSent: () => void }) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!selected) {
-      setError("Оберіть стіл");
+      toast.danger("Оберіть стіл");
       return;
     }
-    setError(null);
     setIsSubmitting(true);
 
     const response = await fetch("/api/account/service-requests", {
@@ -61,70 +72,73 @@ function TableBookingForm({ onSent }: { onSent: () => void }) {
 
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-      setError(data?.error?.message ?? "Не вдалося надіслати запит");
+      toast.danger(data?.error?.message ?? "Не вдалося надіслати запит");
       return;
     }
 
     setComment("");
     setSelected(null);
-    setSent(true);
+    toast.success("Запит надіслано, персонал звʼяжеться з вами");
     onSent();
   };
 
   return (
-    <div className="panel">
-      <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>Забронювати стіл</h2>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.75rem" }}>
-        {tables === null && <p className="text-muted">Завантаження столів…</p>}
-        {tables && tables.length === 0 && <p className="text-muted">Наразі столи не налаштовані.</p>}
-        {tables && tables.length > 0 && (
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            {tables.map((table) => (
-              <button
-                key={table.tableCode}
-                type="button"
-                disabled={table.open}
-                onClick={() => {
-                  setSelected(table.tableCode);
-                  setSent(false);
-                }}
-                title={table.open ? "Стіл зайнятий" : "Стіл вільний"}
-                style={{
-                  minWidth: "2.75rem",
-                  opacity: table.open ? 0.4 : 1,
-                  borderColor: selected === table.tableCode ? "var(--accent)" : undefined,
-                }}
-              >
-                {table.tableCode}
-              </button>
-            ))}
-          </div>
-        )}
-        <textarea
-          placeholder="Побажання (час, кількість гостей тощо) — необов'язково"
-          value={comment}
-          onChange={(event) => setComment(event.target.value)}
-          rows={2}
-        />
-        {error && <p className="text-error">{error}</p>}
-        {sent && !error && <p className="text-success">Запит надіслано, персонал зв&apos;яжеться з вами.</p>}
-        <button type="submit" disabled={isSubmitting || !selected}>
-          {selected ? `Забронювати стіл ${selected}` : "Оберіть стіл вище"}
-        </button>
-      </form>
-    </div>
+    <Card>
+      <CardContent className="p-5">
+        <h2 className="text-lg font-medium text-foreground">Забронювати стіл</h2>
+        <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
+          {tables === null && (
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: 6 }, (_, index) => (
+                <Skeleton key={index} className="h-11 w-11 rounded-lg" />
+              ))}
+            </div>
+          )}
+          {tables && tables.length === 0 && <p className="text-sm text-muted">Наразі столи не налаштовані.</p>}
+          {tables && tables.length > 0 && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Вибір столу">
+              {tables.map((table) => (
+                <Button
+                  key={table.tableCode}
+                  type="button"
+                  size="md"
+                  variant={selected === table.tableCode ? "primary" : "outline"}
+                  isDisabled={table.open}
+                  onPress={() => setSelected(table.tableCode)}
+                  aria-label={`Стіл ${table.tableCode}${table.open ? ", зайнятий" : ", вільний"}`}
+                  className="min-h-11 min-w-11 tabular-nums active:scale-[0.96]"
+                >
+                  {table.tableCode}
+                </Button>
+              ))}
+            </div>
+          )}
+          <TextField value={comment} onChange={setComment}>
+            <Label>Побажання (час, кількість гостей тощо), необовʼязково</Label>
+            <TextArea rows={2} />
+          </TextField>
+          <Button
+            type="submit"
+            variant="primary"
+            isPending={isSubmitting}
+            isDisabled={!selected}
+            className="min-h-11 active:scale-[0.98]"
+          >
+            {isSubmitting && <Spinner size="sm" color="current" />}
+            {selected ? `Забронювати стіл ${selected}` : "Оберіть стіл вище"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
 function HookahRentalForm({ onSent }: { onSent: () => void }) {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setError(null);
     setIsSubmitting(true);
 
     const response = await fetch("/api/account/service-requests", {
@@ -137,35 +151,36 @@ function HookahRentalForm({ onSent }: { onSent: () => void }) {
 
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-      setError(data?.error?.message ?? "Не вдалося надіслати запит");
+      toast.danger(data?.error?.message ?? "Не вдалося надіслати запит");
       return;
     }
 
     setComment("");
-    setSent(true);
+    toast.success("Запит надіслано, персонал звʼяжеться з вами");
     onSent();
   };
 
   return (
-    <div className="panel">
-      <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>Замовити оренду кальяну</h2>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.75rem" }}>
-        <textarea
-          placeholder="Ваші побажання (смак, час тощо) — необов'язково"
-          value={comment}
-          onChange={(event) => {
-            setComment(event.target.value);
-            setSent(false);
-          }}
-          rows={3}
-        />
-        {error && <p className="text-error">{error}</p>}
-        {sent && !error && <p className="text-success">Запит надіслано, персонал зв&apos;яжеться з вами.</p>}
-        <button type="submit" disabled={isSubmitting}>
-          Відправити запит
-        </button>
-      </form>
-    </div>
+    <Card>
+      <CardContent className="p-5">
+        <h2 className="text-lg font-medium text-foreground">Замовити оренду кальяну</h2>
+        <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
+          <TextField value={comment} onChange={setComment}>
+            <Label>Ваші побажання (смак, час тощо), необовʼязково</Label>
+            <TextArea rows={3} />
+          </TextField>
+          <Button
+            type="submit"
+            variant="primary"
+            isPending={isSubmitting}
+            className="min-h-11 active:scale-[0.98]"
+          >
+            {isSubmitting && <Spinner size="sm" color="current" />}
+            Відправити запит
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -184,26 +199,27 @@ export function ServiceRequestsPanel() {
   const reload = () => setReloadKey((key) => key + 1);
 
   return (
-    <div style={{ display: "grid", gap: "1rem" }}>
+    <div className="grid gap-4">
       {history && history.length > 0 && (
-        <div className="panel">
-          <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>Ваші запити</h2>
-          <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "0.5rem", margin: 0 }}>
-            {history.map((item) => (
-              <li
-                key={item.id}
-                style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}
-              >
-                <span>
-                  {TYPE_LABEL[item.type]}
-                  {item.tableCode ? ` №${item.tableCode}` : ""}
-                  {item.comment ? ` — ${item.comment}` : ""}
-                </span>
-                <span className="text-muted">{STATUS_LABEL[item.status]}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Card>
+          <CardContent className="p-5">
+            <h2 className="text-lg font-medium text-foreground">Ваші запити</h2>
+            <ul className="mt-3 grid gap-2.5">
+              {history.map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="min-w-0 text-sm text-foreground">
+                    {TYPE_LABEL[item.type]}
+                    {item.tableCode ? <span className="tabular-nums"> №{item.tableCode}</span> : ""}
+                    {item.comment ? <span className="text-muted"> · {item.comment}</span> : ""}
+                  </span>
+                  <Chip color={STATUS_CHIP[item.status].color} variant="soft" size="sm">
+                    {STATUS_CHIP[item.status].label}
+                  </Chip>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
       <TableBookingForm onSent={reload} />

@@ -6,6 +6,10 @@ import { BlurText } from "@/components/BlurText";
 
 export type PromoBanner = { id: string; title: string; description: string | null; imageUrl: string | null };
 
+// Кругла стрілка перегортання — 44px, щоб влучати пальцем (мінімальна тач-ціль).
+const ARROW_CLASS =
+  "inline-flex size-11 items-center justify-center rounded-full border border-border bg-background/50 text-2xl leading-none text-foreground backdrop-blur-sm transition hover:bg-surface-hover active:scale-[0.97]";
+
 // FR-008: свайпаемая карусель баннеров; при одном баннере переключение недоступно. Клік по
 // банеру (крім стрілок ‹›) веде на /promotions — повний перелік акцій з фото та описом без
 // обрізання. Той самий патерн "клікована картка з вкладеними кнопками, що зупиняють
@@ -47,7 +51,6 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
 
   return (
     <div
-      className="promo-carousel"
       role="button"
       tabIndex={0}
       aria-label="Переглянути всі акції"
@@ -60,43 +63,15 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      style={{
-        position: "relative",
-        overflow: "hidden",
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)",
-        cursor: "pointer",
-      }}
+      className="relative isolate cursor-pointer overflow-hidden border-b border-border bg-surface"
     >
       {banner.imageUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- фото банера з CastaPOS-адмінки, довільний URL */}
-          <img
-            src={banner.imageUrl}
-            alt=""
-            aria-hidden
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              zIndex: 0,
-              pointerEvents: "none",
-            }}
-          />
+          <img src={banner.imageUrl} alt="" aria-hidden className="pointer-events-none absolute inset-0 z-0 size-full object-cover" />
           {/* Той самий градієнт-оверлей, що на hero головної (app/(public)/page.tsx) — фото банера
               може бути світлим, текст лишається читабельним незалежно від контрасту фото. */}
-          <div
-            aria-hidden
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 0,
-              pointerEvents: "none",
-              background: "linear-gradient(90deg, rgba(10, 10, 12, 0.85) 0%, rgba(10, 10, 12, 0.55) 55%, rgba(10, 10, 12, 0.85) 100%)",
-            }}
-          />
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-linear-to-r from-background/85 via-background/55 to-background/85" />
         </>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- декоративна текстура диму, не контентне зображення
@@ -104,52 +79,25 @@ export function PromoCarousel({ banners }: { banners: PromoBanner[] }) {
           src="/smoke-bg.png"
           alt=""
           aria-hidden
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            height: "230%",
-            width: "auto",
-            maxWidth: "none",
-            opacity: 0.8,
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
+          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[230%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2 opacity-80"
         />
       )}
 
-      <div
-        className="promo-carousel__content"
-      >
+      <div className="relative z-[1] mx-auto grid min-h-[92px] w-full max-w-[1200px] grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3 px-3 py-3 md:px-6">
         {canNavigate && (
-          <button type="button" onClick={goPrev} aria-label="Попередня акція">
+          <button type="button" onClick={goPrev} aria-label="Попередня акція" className={`${ARROW_CLASS} col-start-1`}>
             ‹
           </button>
         )}
-        <div className="promo-carousel__copy">
-          <span className="promo-carousel__eyebrow">Special offer</span>
-          <BlurText
-            text={banner.title}
-            animateBy="words"
-            direction="top"
-            delay={90}
-            stepDuration={0.28}
-            className="promo-carousel__title"
-          />
+        <div className="col-start-2 grid gap-1 text-center">
+          <span className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-muted">Акція</span>
+          <BlurText text={banner.title} animateBy="words" direction="top" delay={90} stepDuration={0.28} className="m-0 text-base font-bold md:text-lg" />
           {banner.description ? (
-            <BlurText
-              text={banner.description}
-              animateBy="words"
-              direction="top"
-              delay={45}
-              stepDuration={0.24}
-              className="promo-carousel__description"
-            />
+            <BlurText text={banner.description} animateBy="words" direction="top" delay={45} stepDuration={0.24} className="m-0 text-sm text-muted" />
           ) : null}
         </div>
         {canNavigate && (
-          <button type="button" onClick={goNext} aria-label="Наступна акція">
+          <button type="button" onClick={goNext} aria-label="Наступна акція" className={`${ARROW_CLASS} col-start-3`}>
             ›
           </button>
         )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@heroui/react";
 import { MenuItemCard } from "@/components/MenuItemCard";
 import type { MenuSection } from "@/lib/menu";
 
@@ -11,6 +12,22 @@ import type { MenuSection } from "@/lib/menu";
 // Топ-категорія — або вітка з підкатегоріями, або лист із власними позиціями,
 // ніколи не обидва одразу (правило з lib/menu.ts getMenuSections/getMenuCategories).
 type TrackedSection = { slug: string; topSlug: string };
+
+// Липка стрічка пігулок скролиться вбік; текст біля країв плавно тоне замість різкого
+// обрізання (reference-ефект "стрічки") — маска симетрична з обох боків, без JS.
+const TAB_STRIP_CLASS =
+  "flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 md:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden " +
+  "[mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)] " +
+  "[-webkit-mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]";
+
+function tabClass(isActive: boolean, isSub = false) {
+  const base =
+    "min-h-11 flex-none whitespace-nowrap rounded-full border transition active:scale-[0.97] " +
+    (isSub ? "px-3.5 py-1.5 text-xs " : "px-4 py-2 text-sm ");
+  return isActive
+    ? `${base}border-transparent bg-accent font-semibold text-accent-foreground`
+    : `${base}border-border bg-surface text-muted hover:bg-surface-hover hover:text-foreground`;
+}
 
 export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
   const trackedSections = useMemo<TrackedSection[]>(
@@ -49,7 +66,7 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
   const hasSubTabs = Boolean(activeTop && activeTop.children.length > 0);
 
   useEffect(() => {
-    const header = document.querySelector<HTMLElement>(".site-header__sticky");
+    const header = document.querySelector<HTMLElement>("[data-site-header]");
     const primary = primaryRef.current;
     const secondary = secondaryRef.current;
 
@@ -156,27 +173,41 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
   }, [isCategoryMenuOpen]);
 
   return (
-    <div className="menu-browser">
-      <div className="category-grid" style={{ marginTop: "1rem", marginBottom: "1rem" }}>
-        <Link href="/menu/popular" className="category-block">
+    // min-w-0 — батьківські grid-контейнери (menu/page.tsx і menu/layout.tsx) не дають
+    // скрол-стрічці вкладок форсувати ширину сторінки за viewport (деталі — в історії
+    // коміту: grid-елементи мають дефолтний min-width:auto, не 0).
+    <div className="min-w-0">
+      <div className="mb-4 mt-4 grid gap-2.5">
+        <Link
+          href="/menu/popular"
+          className="flex min-h-[52px] items-center rounded-xl border border-border bg-surface px-4 py-3 text-foreground transition hover:bg-surface-hover active:scale-[0.98]"
+        >
           ★ Популярне
         </Link>
       </div>
 
-      <div ref={primaryRef} className="menu-tabs-wrap menu-tabs-wrap--primary" style={{ top: headerHeight }}>
-        <div className="menu-tabs menu-tabs--primary">
+      {/* Липкий РЯДОК вкладок: скролима стрічка пігулок + кнопка "…" як звичайний flex-сусід
+          ЗА МЕЖАМИ скрол-контейнера — на реальному мобільному Chrome position:sticky по
+          правому краю всередині scroll-контейнера не спрацював (звіт 2026-08-16). */}
+      <div ref={primaryRef} className="sticky z-50 flex items-center border-b border-border bg-background py-2" style={{ top: headerHeight }}>
+        <div className={TAB_STRIP_CLASS}>
           {sections.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={`menu-tab${section.slug === activeTopSlug ? " menu-tab--active" : ""}`}
+              className={tabClass(section.slug === activeTopSlug)}
               onClick={() => scrollToSection(section.children.length > 0 ? section.children[0].slug : section.slug)}
             >
               {section.name}
             </button>
           ))}
         </div>
-        <button type="button" className="menu-tabs__more" aria-label="Усі категорії" onClick={() => setIsCategoryMenuOpen(true)}>
+        <button
+          type="button"
+          aria-label="Усі категорії"
+          onClick={() => setIsCategoryMenuOpen(true)}
+          className="mr-4 inline-flex size-11 flex-none items-center justify-center rounded-full border border-border bg-surface text-foreground transition hover:bg-surface-hover active:scale-[0.97] md:mr-6"
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="5" cy="12" r="2" />
             <circle cx="12" cy="12" r="2" />
@@ -186,25 +217,35 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
       </div>
 
       {isCategoryMenuOpen && (
-        <div role="presentation" className="menu-tabs__overlay" onClick={() => setIsCategoryMenuOpen(false)}>
-          <div className="menu-tabs__overlay-header">
-            <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Категорії</h2>
-            <button type="button" onClick={() => setIsCategoryMenuOpen(false)} aria-label="Закрити">
+        <div role="presentation" className="fixed inset-0 z-[1000] flex flex-col bg-background" onClick={() => setIsCategoryMenuOpen(false)}>
+          <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-6">
+            <h2 className="m-0 text-lg font-semibold">Категорії</h2>
+            <button
+              type="button"
+              onClick={() => setIsCategoryMenuOpen(false)}
+              aria-label="Закрити"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm text-foreground transition hover:bg-surface-hover active:scale-[0.97]"
+            >
               Закрити ✕
             </button>
           </div>
-          <div className="menu-tabs__overlay-body" onClick={(event) => event.stopPropagation()}>
+          <div className="overflow-y-auto px-4 pb-8 pt-2 md:px-6" onClick={(event) => event.stopPropagation()}>
             {sections.map((section) => (
               <div key={section.id}>
                 <button
                   type="button"
-                  className="menu-tabs__overlay-top"
+                  className="block min-h-11 w-full border-b border-separator px-1 py-3.5 text-left text-base font-semibold text-foreground transition hover:bg-surface-hover active:scale-[0.99]"
                   onClick={() => selectFromCategoryMenu(section.children.length > 0 ? section.children[0].slug : section.slug)}
                 >
                   {section.name}
                 </button>
                 {section.children.map((child) => (
-                  <button key={child.id} type="button" className="menu-tabs__overlay-sub" onClick={() => selectFromCategoryMenu(child.slug)}>
+                  <button
+                    key={child.id}
+                    type="button"
+                    className="block min-h-11 w-full border-b border-separator py-3 pl-6 pr-1 text-left text-sm text-muted transition hover:bg-surface-hover hover:text-foreground active:scale-[0.99]"
+                    onClick={() => selectFromCategoryMenu(child.slug)}
+                  >
                     {child.name}
                   </button>
                 ))}
@@ -215,15 +256,14 @@ export function MenuBrowser({ sections }: { sections: MenuSection[] }) {
       )}
 
       {hasSubTabs && activeTop && (
-        <div ref={secondaryRef} className="menu-tabs-wrap menu-tabs-wrap--secondary" style={{ top: headerHeight + primaryHeight }}>
-          <div className="menu-tabs menu-tabs--secondary">
+        <div
+          ref={secondaryRef}
+          className="sticky z-50 flex items-center border-b border-border bg-surface-secondary py-1.5"
+          style={{ top: headerHeight + primaryHeight }}
+        >
+          <div className={TAB_STRIP_CLASS}>
             {activeTop.children.map((child) => (
-              <button
-                key={child.id}
-                type="button"
-                className={`menu-tab menu-tab--sub${child.slug === activeSlug ? " menu-tab--active" : ""}`}
-                onClick={() => scrollToSection(child.slug)}
-              >
+              <button key={child.id} type="button" className={tabClass(child.slug === activeSlug, true)} onClick={() => scrollToSection(child.slug)}>
                 {child.name}
               </button>
             ))}
@@ -276,14 +316,16 @@ function MenuSectionBlock({
   registerRef: (element: HTMLElement | null) => void;
 }) {
   return (
-    <section id={slug} data-section-slug={slug} ref={registerRef} className="menu-section" style={{ scrollMarginTop: offset + 12 }}>
-      <h2>{name}</h2>
+    <section id={slug} data-section-slug={slug} ref={registerRef} className="pt-6" style={{ scrollMarginTop: offset + 12 }}>
+      <h2 className="mb-4 text-xl font-semibold text-foreground">{name}</h2>
       {items.length === 0 ? (
-        <p className="text-muted">У цій категорії поки немає позицій.</p>
+        <EmptyState className="rounded-2xl border border-dashed border-border py-8 text-center">
+          У цій категорії поки немає позицій.
+        </EmptyState>
       ) : (
-        <div className="menu-item-grid">
+        <div className="flex flex-col gap-4 md:grid md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
           {items.map((item) => (
-            <MenuItemCard key={item.id} item={item} />
+            <MenuItemCard key={item.id} item={item} variant="tile" />
           ))}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { getSiteContent } from "@/lib/site-content";
 import { MenuSearch } from "@/components/MenuSearch";
 
@@ -8,21 +9,28 @@ export default async function MenuLayout({ children }: { children: React.ReactNo
   const siteContent = await getSiteContent();
 
   return (
-    <div className="menu-layout">
-      <div className="menu-layout__main">
+    <div className="mx-auto grid max-w-[1200px] items-start gap-6 px-4 py-8 md:grid-cols-[minmax(0,1fr)_280px] md:px-6">
+      <div className="min-w-0">
         <MenuSearch />
         {children}
       </div>
 
       {siteContent && (
-        <aside className="menu-layout__sidebar">
-          <h2 style={{ fontSize: "1rem", marginTop: 0 }}>Інформація про заклад</h2>
-          <p>
-            <a href={siteContent.addressMapUrl} target="_blank" rel="noreferrer">
+        <aside className="md:sticky md:top-24">
+          <Card>
+          <h2 className="mb-3 mt-0 text-base font-semibold text-foreground">Інформація про заклад</h2>
+          <p className="mb-2 mt-0 text-sm">
+            <a
+              href={siteContent.addressMapUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground transition hover:text-muted"
+            >
               📍 {siteContent.address}
             </a>
           </p>
-          <p style={{ margin: 0 }}>🕐 {siteContent.workingHours}</p>
+          <p className="m-0 text-sm text-muted">🕐 {siteContent.workingHours}</p>
+          </Card>
         </aside>
       )}
     </div>

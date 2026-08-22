@@ -1,7 +1,9 @@
-import Link from "next/link";
+import { Card } from "@heroui/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ServiceRequestsPanel } from "@/components/ServiceRequestsPanel";
+import { BackLink } from "@/components/account/BackLink";
+import { AccountEmptyState } from "@/components/account/AccountEmptyState";
 
 // Послуги (бронювання столу, оренда кальяну) доступні лише Gold Member.
 export default async function ServicesPage() {
@@ -12,20 +14,22 @@ export default async function ServicesPage() {
   const isGold = user?.role === "GOLD_MEMBER";
 
   return (
-    <main className="page page--narrow">
-      <Link href="/account" className="back-link">
-        ← Кабінет
-      </Link>
-      <h1>Послуги</h1>
+    <main className="mx-auto w-full max-w-md px-4 py-10 sm:px-6">
+      <BackLink href="/account">Кабінет</BackLink>
+      <h1 className="mt-2 text-3xl font-semibold text-foreground">Послуги</h1>
 
-      {isGold ? (
-        <ServiceRequestsPanel />
-      ) : (
-        <p className="text-muted">
-          Ця сторінка доступна лише Gold Member. Gold Member присвоюється автоматично після 7 підтверджених
-          чеків за календарний місяць.
-        </p>
-      )}
+      <div className="mt-6">
+        {isGold ? (
+          <ServiceRequestsPanel />
+        ) : (
+          <Card>
+            <AccountEmptyState
+              title="Доступно лише Gold Member"
+              description="Статус присвоюється автоматично після 7 підтверджених чеків за календарний місяць."
+            />
+          </Card>
+        )}
+      </div>
     </main>
   );
 }

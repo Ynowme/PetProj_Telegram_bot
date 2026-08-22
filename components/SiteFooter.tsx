@@ -1,6 +1,6 @@
 import { getSiteContent } from "@/lib/site-content";
 import { DAY_KEYS, type WorkingHoursByDay } from "@/lib/site-content-sync";
-import { FacebookIcon, GoogleIcon, InstagramIcon, TelegramIcon } from "@/components/SocialIcons";
+import { FacebookIcon, GoogleIcon, InstagramIcon, SocialIconLink, TelegramIcon } from "@/components/SocialIcons";
 
 const DAY_LABEL: Record<(typeof DAY_KEYS)[number], string> = {
   mon: "Пн",
@@ -34,15 +34,16 @@ function todayKey(): (typeof DAY_KEYS)[number] {
 function WorkingHoursTable({ schedule }: { schedule: WorkingHoursByDay }) {
   const today = todayKey();
   return (
-    <table style={{ borderCollapse: "collapse", fontSize: "0.9rem" }}>
+    <table className="border-collapse text-sm tabular-nums">
       <tbody>
         {DAY_KEYS.map((day) => {
           const hours = schedule[day];
           const isToday = day === today;
+          const cellClass = isToday ? "font-semibold text-foreground" : "text-muted";
           return (
-            <tr key={day} style={{ fontWeight: isToday ? 600 : 400 }}>
-              <td style={{ paddingRight: "0.75rem", color: isToday ? "var(--foreground)" : "var(--foreground-muted)" }}>{DAY_LABEL[day]}</td>
-              <td style={{ color: isToday ? "var(--foreground)" : "var(--foreground-muted)" }}>{hours ? `${hours.open}–${hours.close}` : "вихідний"}</td>
+            <tr key={day}>
+              <td className={`pr-3 ${cellClass}`}>{DAY_LABEL[day]}</td>
+              <td className={cellClass}>{hours ? `${hours.open}–${hours.close}` : "вихідний"}</td>
             </tr>
           );
         })}
@@ -59,6 +60,13 @@ export async function SiteFooter() {
   const telHref = `tel:${siteContent.phone.replace(/[^+\d]/g, "")}`;
   const schedule = siteContent.workingHoursByDay as WorkingHoursByDay | null;
 
+  const socialLinks = [
+    { href: siteContent.instagramUrl, label: "Instagram", Icon: InstagramIcon },
+    { href: siteContent.facebookUrl, label: "Facebook", Icon: FacebookIcon },
+    { href: siteContent.googleUrl, label: "Google", Icon: GoogleIcon },
+    { href: siteContent.telegramUrl, label: "Telegram", Icon: TelegramIcon },
+  ].filter((social): social is { href: string; label: string; Icon: typeof InstagramIcon } => Boolean(social.href));
+
   const legalLinks = [
     { href: "/privacy-policy", label: "Політика конфіденційності", enabled: Boolean(siteContent.privacyPolicyText) },
     { href: "/terms-of-use", label: "Умови користування", enabled: Boolean(siteContent.termsOfUseText) },
@@ -66,77 +74,48 @@ export async function SiteFooter() {
   ].filter((link) => link.enabled);
 
   return (
-    <footer style={{ borderTop: "1px solid var(--border)", padding: "2rem 1.5rem", marginTop: "3rem" }}>
-      <div className="site-footer__grid">
+    <footer className="mt-12 border-t border-border px-6 py-8">
+      <div className="mx-auto grid max-w-[1200px] gap-6 sm:grid-cols-2 md:grid-cols-3">
         <div>
-          <h3 style={{ marginTop: 0 }}>Контактні дані</h3>
-          <p>{siteContent.address}</p>
-          <p>
-            <a href={telHref}>📞 {siteContent.phone}</a>
+          <h3 className="mb-3 mt-0 text-base font-semibold text-foreground">Контактні дані</h3>
+          <p className="mb-2 mt-0 text-sm text-muted">{siteContent.address}</p>
+          <p className="mb-3 mt-0 text-sm">
+            <a href={telHref} className="text-foreground transition hover:text-muted">
+              📞 {siteContent.phone}
+            </a>
           </p>
           {schedule && <WorkingHoursTable schedule={schedule} />}
         </div>
 
         <div>
-          <h3 style={{ marginTop: 0 }}>Ми в соцмережах</h3>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", gap: "0.6rem" }}>
-            {siteContent.instagramUrl && (
-              <li>
-                <a href={siteContent.instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram" className="social-icon">
-                  <InstagramIcon />
-                </a>
+          <h3 className="mb-3 mt-0 text-base font-semibold text-foreground">Ми в соцмережах</h3>
+          <ul className="m-0 flex list-none gap-2.5 p-0">
+            {socialLinks.map(({ href, label, Icon }) => (
+              <li key={label}>
+                <SocialIconLink href={href} label={label}>
+                  <Icon />
+                </SocialIconLink>
               </li>
-            )}
-            {siteContent.facebookUrl && (
-              <li>
-                <a href={siteContent.facebookUrl} target="_blank" rel="noreferrer" aria-label="Facebook" className="social-icon">
-                  <FacebookIcon />
-                </a>
-              </li>
-            )}
-            {siteContent.googleUrl && (
-              <li>
-                <a href={siteContent.googleUrl} target="_blank" rel="noreferrer" aria-label="Google" className="social-icon">
-                  <GoogleIcon />
-                </a>
-              </li>
-            )}
-            {siteContent.telegramUrl && (
-              <li>
-                <a href={siteContent.telegramUrl} target="_blank" rel="noreferrer" aria-label="Telegram" className="social-icon">
-                  <TelegramIcon />
-                </a>
-              </li>
-            )}
+            ))}
           </ul>
         </div>
 
         <div>
-          <h3 style={{ marginTop: 0 }}>На карті</h3>
+          <h3 className="mb-3 mt-0 text-base font-semibold text-foreground">На карті</h3>
           <iframe
             src={siteContent.mapEmbedUrl}
             title="Карта розташування закладу"
             width="100%"
             height="150"
-            style={{ border: "1px solid var(--border)", borderRadius: 8 }}
             loading="lazy"
+            className="rounded-lg border border-border"
           />
           {siteContent.addressMapUrl && (
             <a
               href={siteContent.addressMapUrl}
               target="_blank"
               rel="noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                marginTop: "0.6rem",
-                padding: "0.6rem 1rem",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                color: "inherit",
-              }}
+              className="mt-2.5 flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-foreground transition hover:bg-surface-hover active:scale-[0.98]"
             >
               <span aria-hidden>🧭</span>
               Отримати розташування
@@ -146,20 +125,9 @@ export async function SiteFooter() {
       </div>
 
       {legalLinks.length > 0 && (
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "1.5rem auto 0",
-            paddingTop: "1.5rem",
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "1rem",
-            fontSize: "0.85rem",
-          }}
-        >
+        <div className="mx-auto mt-6 flex max-w-[1200px] flex-wrap gap-4 border-t border-separator pt-6 text-sm">
           {legalLinks.map((link) => (
-            <a key={link.href} href={link.href} style={{ color: "var(--foreground-muted)" }}>
+            <a key={link.href} href={link.href} className="text-muted transition hover:text-foreground">
               {link.label}
             </a>
           ))}

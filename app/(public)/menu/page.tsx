@@ -10,16 +10,12 @@ export default async function MenuPage() {
   const [sections, siteContent] = await Promise.all([getMenuSections(), getSiteContent()]);
 
   return (
-    <main className="menu-page">
-      <h1>Меню</h1>
+    <main className="grid min-w-0 gap-5">
+      <h1 className="m-0 text-4xl font-semibold tracking-tight text-foreground md:text-5xl">Меню</h1>
 
       <MenuBrowser sections={sections} />
 
-      {siteContent?.allergyDisclaimer && (
-        <p className="text-muted" style={{ marginTop: "1.5rem", fontSize: "0.9rem" }}>
-          {siteContent.allergyDisclaimer}
-        </p>
-      )}
+      {siteContent?.allergyDisclaimer && <p className="mt-6 text-sm text-muted">{siteContent.allergyDisclaimer}</p>}
     </main>
   );
 }

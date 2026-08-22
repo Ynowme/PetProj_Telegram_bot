@@ -1,11 +1,7 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const ROLE_LABEL: Record<string, string> = {
-  MEMBER: "Member",
-  GOLD_MEMBER: "Gold Member",
-};
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { UsersTable, type UserRow } from "@/components/admin/UsersTable";
 
 // Список всех гостей, когда-либо авторизованных через Telegram: чеки и бонусный баланс — одним запросом на всех, без N+1.
 export default async function AdminUsersPage() {
@@ -31,45 +27,27 @@ export default async function AdminUsersPage() {
 
   const bonusBalanceByUserId = new Map(bonusSums.map((row) => [row.userId, Number(row._sum.amount ?? 0)]));
 
-  return (
-    <main className="page">
-      <Link href="/admin" className="back-link">
-        ← Адміністрування
-      </Link>
-      <h1>Гості</h1>
+  // Дата — ISO-рядком: Date не серіалізується у пропси клієнтського компонента без втрат
+  const rows: UserRow[] = users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    telegramUsername: user.telegramUsername,
+    phone: user.phone,
+    role: user.role,
+    isAdmin: user.isAdmin,
+    createdAt: user.createdAt.toISOString(),
+    receiptsCount: user._count.receipts,
+    bonusBalance: bonusBalanceByUserId.get(user.id) ?? 0,
+  }));
 
-      {users.length === 0 ? (
-        <p className="text-muted">Ще ніхто не входив через Telegram.</p>
-      ) : (
-        <div style={{ display: "grid", gap: "0.6rem", marginTop: "1rem" }}>
-          {users.map((user) => (
-            <Link
-              key={user.id}
-              href={`/admin/users/${user.id}`}
-              className="panel"
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}
-            >
-              <div>
-                <strong>{user.name}</strong>
-                {user.isAdmin && <span className="text-muted"> · адмін</span>}
-                <p className="text-muted" style={{ margin: 0 }}>
-                  {user.telegramUsername ? `@${user.telegramUsername}` : "без Telegram username"}
-                  {user.phone ? ` · ${user.phone}` : ""} · {ROLE_LABEL[user.role] ?? user.role}
-                </p>
-                <p className="text-muted" style={{ margin: 0 }}>
-                  Зареєстрований {new Intl.DateTimeFormat("uk-UA").format(user.createdAt)}
-                </p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div>{user._count.receipts} чек(ів)</div>
-                <strong style={{ color: "var(--accent-bright)" }}>
-                  {bonusBalanceByUserId.get(user.id) ?? 0} ₴ бонусів
-                </strong>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </main>
+  return (
+    <section className="grid gap-6">
+      <AdminPageHeader
+        title="Гості"
+        subtitle={`Усі гості, що входили через Telegram: ${rows.length}`}
+        breadcrumbs={[{ label: "Адміністрування", href: "/admin" }, { label: "Гості" }]}
+      />
+      <UsersTable rows={rows} />
+    </section>
   );
 }

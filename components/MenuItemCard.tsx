@@ -1,67 +1,29 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { Chip, Modal } from "@heroui/react";
 import { PLACEHOLDER_PHOTO_URL, type SerializedMenuItem } from "@/lib/menu";
 import { MenuItemLikeButton } from "@/components/MenuItemLikeButton";
 
-const toggleLinkStyle = {
-  background: "none",
-  border: "none",
-  padding: 0,
-  margin: 0,
-  font: "inherit",
-  fontWeight: 600,
-  color: "var(--accent-bright)",
-  cursor: "pointer",
-} as const;
-
 // Опис у списку — обрізаний до 2 рядків з інлайновою кнопкою "показати" в кінці, щоб
 // картки в списку були однакової висоти незалежно від довжини опису (на відміну від
-// модалки з фото, де опис завжди показується повністю). Клас menu-card__description —
-// щоб десктопна плитка (app/globals.css) могла його приховати через !important.
-function DescriptionClamp({ text }: { text: string }) {
+// модалки з фото, де опис завжди показується повністю). У плитці (variant="tile" на
+// десктопі) опис ховається зовсім — md:hidden передається ззовні через className.
+function DescriptionClamp({ text, className = "" }: { text: string; className?: string }) {
   const [expanded, setExpanded] = useState(false);
 
-  if (expanded) {
-    return (
-      <p className="menu-card__description" style={{ margin: "0.4rem 0", opacity: 0.8 }}>
-        {text}{" "}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            setExpanded(false);
-          }}
-          style={toggleLinkStyle}
-        >
-          сховати
-        </button>
-      </p>
-    );
-  }
-
   return (
-    <p
-      className="menu-card__description"
-      style={{
-        margin: "0.4rem 0",
-        opacity: 0.8,
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden",
-      }}
-    >
+    <p className={`my-1.5 text-sm text-muted ${expanded ? "" : "line-clamp-2"} ${className}`}>
       {text}{" "}
       <button
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          setExpanded(true);
+          setExpanded((value) => !value);
         }}
-        style={toggleLinkStyle}
+        className="inline cursor-pointer border-none bg-transparent p-0 font-semibold text-accent"
       >
-        показати
+        {expanded ? "сховати" : "показати"}
       </button>
     </p>
   );
@@ -70,7 +32,7 @@ function DescriptionClamp({ text }: { text: string }) {
 function VolumeAbvLine({ item }: { item: SerializedMenuItem }) {
   if (!item.volume && item.abv === null) return null;
   return (
-    <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.6 }}>
+    <p className="m-0 text-xs text-muted">
       {item.volume}
       {item.abv !== null ? ` · ${item.abv}%` : ""}
     </p>
@@ -79,18 +41,9 @@ function VolumeAbvLine({ item }: { item: SerializedMenuItem }) {
 
 function NewBadge() {
   return (
-    <span
-      style={{
-        fontSize: "0.7rem",
-        fontWeight: 600,
-        color: "var(--accent-contrast)",
-        background: "var(--accent)",
-        borderRadius: 6,
-        padding: "0.1rem 0.4rem",
-      }}
-    >
+    <Chip size="sm" color="accent">
       Новинка
-    </span>
+    </Chip>
   );
 }
 
@@ -98,20 +51,7 @@ function PlaceholderNameOverlay({ name }: { name: string }) {
   return (
     <span
       aria-hidden
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "0.3rem",
-        fontFamily: "var(--font-yeseva)",
-        fontSize: "0.8rem",
-        lineHeight: 1.1,
-        color: "#000",
-        textShadow: "0 0 4px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.6)",
-      }}
+      className="absolute inset-0 flex items-center justify-center p-1.5 text-center text-xs leading-tight text-background [font-family:var(--font-yeseva)] [text-shadow:0_0_4px_rgba(255,255,255,0.9),0_0_8px_rgba(255,255,255,0.6)]"
     >
       {name}
     </span>
@@ -141,7 +81,7 @@ function ShareButton({ item }: { item: SerializedMenuItem }) {
 
     const shareData = {
       title: item.name,
-      text: `${item.name} — ${item.price} ${item.currency}`,
+      text: `${item.name}, ${item.price} ${item.currency}`,
       url: window.location.href,
     };
 
@@ -164,26 +104,29 @@ function ShareButton({ item }: { item: SerializedMenuItem }) {
   };
 
   return (
-    <button type="button" onClick={handleShare} aria-label={`Поділитися ${item.name}`} className="menu-card__share">
+    <button
+      type="button"
+      onClick={handleShare}
+      aria-label={`Поділитися ${item.name}`}
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-transparent text-muted transition hover:bg-surface-hover hover:text-foreground active:scale-[0.97]"
+    >
       {copied ? "✓" : <ShareIcon />}
     </button>
   );
 }
 
-export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
+// Єдина картка позиції — один DOM для Пошуку/Популярного/секцій меню.
+// variant="row" (дефолт) — рядок "фото зліва" завжди; variant="tile" — той самий рядок на
+// мобільному, але плитка з великим фото на десктопі (використовується лише всередині
+// сітки секцій MenuBrowser). Раніше це перемикалось медіа-запитом .menu-item-grid у
+// globals.css — тепер явним пропом, без каскадних !important.
+export function MenuItemCard({ item, variant = "row" }: { item: SerializedMenuItem; variant?: "row" | "tile" }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const hasNoPhoto = item.photoUrl === PLACEHOLDER_PHOTO_URL || photoFailed;
   const photoSrc = photoFailed ? PLACEHOLDER_PHOTO_URL : item.photoUrl;
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsOpen(false);
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  const isTile = variant === "tile";
 
   return (
     <>
@@ -198,136 +141,75 @@ export function MenuItemCard({ item }: { item: SerializedMenuItem }) {
             setIsOpen(true);
           }
         }}
-        className="menu-card"
+        className={`flex cursor-pointer gap-4 rounded-2xl border border-border bg-surface p-4 transition hover:bg-surface-hover active:scale-[0.98] ${
+          isTile ? "md:flex-col md:gap-0 md:overflow-hidden md:p-0 md:hover:-translate-y-0.5" : ""
+        }`}
       >
-        <div className="menu-card__photo">
+        <div
+          className={`relative size-24 shrink-0 overflow-hidden rounded-lg bg-surface-secondary ${
+            isTile ? "md:aspect-square md:size-auto md:w-full md:rounded-none" : ""
+          }`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element -- локальные/будущие S3-фото, next/image добавим при подключении реального ImageStorage-CDN */}
-          <img src={photoSrc} alt={item.name} onError={() => setPhotoFailed(true)} />
+          <img src={photoSrc} alt={item.name} onError={() => setPhotoFailed(true)} className="size-full object-cover" />
           {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
         </div>
-        <div className="menu-card__body">
-          <div className="menu-card__heading">
-            <h3 className="menu-card__name">
+        <div className={`min-w-0 flex-1 ${isTile ? "md:p-3.5" : ""}`}>
+          <div className="flex flex-wrap justify-between gap-3">
+            <h3 className={`m-0 flex min-w-0 flex-wrap items-center gap-2 break-words text-base font-semibold ${isTile ? "md:text-sm" : ""}`}>
               {item.name}
               {item.isNew && <NewBadge />}
             </h3>
-            <strong className="menu-card__price">
+            <strong className="shrink-0 whitespace-nowrap font-semibold tabular-nums">
               {item.price} {item.currency}
             </strong>
           </div>
-          {item.description && <DescriptionClamp text={item.description} />}
+          {item.description && <DescriptionClamp text={item.description} className={isTile ? "md:hidden" : ""} />}
           <VolumeAbvLine item={item} />
-          <div className="menu-card__actions" onClick={(event) => event.stopPropagation()}>
+          <div className="mt-2.5 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
             <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
             <ShareButton item={item} />
           </div>
         </div>
       </article>
 
-      {isOpen && (
-        <div
-          role="presentation"
-          onClick={() => setIsOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={item.name}
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              position: "relative",
-              width: "min(420px, 100%)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              borderRadius: 16,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              aria-label="Закрити"
-              style={{
-                position: "absolute",
-                top: "0.75rem",
-                right: "0.75rem",
-                zIndex: 1,
-                width: 36,
-                height: 36,
-                padding: 0,
-                borderRadius: "50%",
-                border: "none",
-                background: "transparent",
-                color: "#fff",
-                cursor: "pointer",
-                filter: "drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6))",
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="100%"
-                height="100%"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="8" y1="8" x2="16" y2="16" />
-                <line x1="16" y1="8" x2="8" y2="16" />
-              </svg>
-            </button>
-
-            <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- див. коментар вище */}
-              <img
-                src={photoSrc}
-                alt={item.name}
-                onError={() => setPhotoFailed(true)}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "16px 16px 0 0",
-                  background: "var(--surface)",
-                }}
+      <Modal isOpen={isOpen} onOpenChange={setIsOpen}>
+        <Modal.Backdrop>
+          <Modal.Container size="sm">
+            {/* max-h + власний скрол: фото 1:1 плюс опис можуть бути вищі за екран телефона */}
+            <Modal.Dialog aria-label={item.name} className="max-h-[90dvh] overflow-y-auto rounded-2xl p-0">
+              <Modal.CloseTrigger
+                aria-label="Закрити"
+                className="absolute right-3 top-3 z-10 text-foreground [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))]"
               />
-              {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
-            </div>
 
-            <div style={{ padding: "1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                <h2 style={{ margin: 0, display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                  {item.name}
-                  {item.isNew && <NewBadge />}
-                </h2>
-                <strong style={{ flexShrink: 0, fontSize: "1.1rem", color: "var(--accent-bright)" }}>
-                  {item.price} {item.currency}
-                </strong>
+              <div className="relative aspect-square w-full bg-surface-secondary">
+                {/* eslint-disable-next-line @next/next/no-img-element -- див. коментар вище */}
+                <img src={photoSrc} alt={item.name} onError={() => setPhotoFailed(true)} className="size-full object-cover" />
+                {hasNoPhoto && <PlaceholderNameOverlay name={item.name} />}
               </div>
-              {item.description && <p style={{ marginTop: "0.6rem", opacity: 0.85 }}>{item.description}</p>}
-              <VolumeAbvLine item={item} />
-              <div style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
-                <ShareButton item={item} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
+              <Modal.Body className="p-5">
+                <div className="flex flex-wrap justify-between gap-3">
+                  <h2 className="m-0 flex flex-wrap items-center gap-2 text-lg font-semibold">
+                    {item.name}
+                    {item.isNew && <NewBadge />}
+                  </h2>
+                  <strong className="shrink-0 text-lg font-semibold tabular-nums text-accent">
+                    {item.price} {item.currency}
+                  </strong>
+                </div>
+                {item.description && <p className="mt-2.5 text-sm leading-6 text-muted">{item.description}</p>}
+                <VolumeAbvLine item={item} />
+                <div className="mt-4 flex items-center gap-2">
+                  <MenuItemLikeButton menuItemId={item.id} initialLikesCount={item.likesCount} />
+                  <ShareButton item={item} />
+                </div>
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </>
   );
 }

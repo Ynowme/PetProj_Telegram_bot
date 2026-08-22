@@ -32,10 +32,11 @@ export async function SiteHeader() {
     // би заввишки "шапка + карусель" і липкість зникала б одразу за каруселлю.
     <>
       <SiteHeaderShell>
-        <div className="site-header__bar">
-          <Link href="/" style={{ display: "inline-flex" }}>
+        {/* relative — якір для мобільної шухляди (SiteHeaderNav), яка позиціонується absolute top-full */}
+        <div className="relative flex items-center justify-between gap-4 px-4 py-3 md:px-6">
+          <Link href="/" className="inline-flex shrink-0 rounded-xl transition active:scale-[0.97]">
             {/* eslint-disable-next-line @next/next/no-img-element -- лого з CastaPOS-адмінки або статичний фолбек-бейдж */}
-            <img src={siteContent?.logoUrl ?? "/logo.svg"} alt={siteContent?.venueName ?? "Логотип закладу"} width={48} height={48} />
+            <img src={siteContent?.logoUrl ?? "/logo.svg"} alt={siteContent?.venueName ?? "Логотип закладу"} width={48} height={48} className="rounded-xl" />
           </Link>
           <SiteHeaderNav
             items={navItems}

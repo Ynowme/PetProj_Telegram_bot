@@ -44,17 +44,11 @@ export function MenuItemLikeButton({
       onClick={handleClick}
       disabled={isPending}
       aria-pressed={liked}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.4rem",
-        border: "1px solid var(--border)",
-        borderRadius: 999,
-        padding: "0.3rem 0.7rem",
-        background: liked ? "var(--accent)" : "transparent",
-        color: liked ? "var(--accent-contrast)" : "inherit",
-        cursor: "pointer",
-      }}
+      className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-3.5 text-sm tabular-nums transition active:scale-[0.97] disabled:opacity-60 ${
+        liked
+          ? "border-transparent bg-accent text-accent-foreground"
+          : "border-border bg-transparent text-foreground hover:bg-surface-hover"
+      }`}
     >
       <span aria-hidden>{liked ? "♥" : "♡"}</span>
       <span>{likesCount}</span>

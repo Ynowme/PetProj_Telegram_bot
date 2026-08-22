@@ -2,6 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Input,
+  Label,
+  Skeleton,
+  Spinner,
+  TextField,
+  buttonVariants,
+  cn,
+  toast,
+} from "@heroui/react";
+import { AccountEmptyState } from "@/components/account/AccountEmptyState";
 
 type ReceiptItem = { name: string; price: number; quantity: number };
 type Receipt = { id: string; date: string; totalAmount: number; currency: string; items: ReceiptItem[] };
@@ -12,12 +27,36 @@ type TableStatus = {
   receipts?: Receipt[];
 };
 
-const STATUS_LABEL: Record<TableStatus["status"], string> = {
-  NONE: "Ви ще не прив&apos;язані до столу",
-  PENDING_STAFF_CONFIRMATION: "Очікує підтвердження офіціантом",
-  CONFIRMED: "Прив&apos;язку підтверджено — чеки цього столу зʼявляться тут автоматично",
-  REJECTED: "Запит відхилено, спробуйте ще раз або зверніться до персоналу",
-  CLOSED: "Стіл закрито",
+// Статус привʼязки: Chip дає миттєве зчитування стану, опис нижче пояснює, що робити далі.
+const STATUS_VIEW: Record<
+  TableStatus["status"],
+  { chip: string; color: "default" | "warning" | "success" | "danger"; description: string }
+> = {
+  NONE: {
+    chip: "Не прив'язано",
+    color: "default",
+    description: "Введіть код столу з QR-наклейки, щоб бачити свій рахунок онлайн.",
+  },
+  PENDING_STAFF_CONFIRMATION: {
+    chip: "Очікує підтвердження",
+    color: "warning",
+    description: "Запит надіслано, офіціант підтвердить прив'язку найближчим часом.",
+  },
+  CONFIRMED: {
+    chip: "Підтверджено",
+    color: "success",
+    description: "Чеки цього столу з'являться тут автоматично.",
+  },
+  REJECTED: {
+    chip: "Відхилено",
+    color: "danger",
+    description: "Запит відхилено, спробуйте ще раз або зверніться до персоналу.",
+  },
+  CLOSED: {
+    chip: "Стіл закрито",
+    color: "default",
+    description: "Сесію столу завершено. За потреби прив'яжіться до столу знову.",
+  },
 };
 
 const CAN_REQUEST = new Set<TableStatus["status"]>(["NONE", "REJECTED", "CLOSED"]);
@@ -28,7 +67,6 @@ const CAN_REQUEST = new Set<TableStatus["status"]>(["NONE", "REJECTED", "CLOSED"
 export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
   const [tableCode, setTableCode] = useState(initialCode ?? "");
   const [status, setStatus] = useState<TableStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [guestOrderingEnabled, setGuestOrderingEnabled] = useState(false);
@@ -49,7 +87,6 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
   }, []);
 
   const submit = async (code: string) => {
-    setError(null);
     setIsSubmitting(true);
 
     const response = await fetch("/api/account/table-session", {
@@ -62,7 +99,7 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
 
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-      setError(data?.error?.message ?? "Не вдалося надіслати запит");
+      toast.danger(data?.error?.message ?? "Не вдалося надіслати запит");
       return;
     }
 
@@ -74,7 +111,7 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
     if (!initialCode || autoSubmitted.current || status === null) return;
     if (!CAN_REQUEST.has(status.status)) return;
     autoSubmitted.current = true;
-    // queueMicrotask — submit() одразу виставляє setIsSubmitting/setError, а виклик setState
+    // queueMicrotask — submit() одразу виставляє setIsSubmitting, а виклик setState
     // прямо в тілі ефекту небажаний (react-hooks/set-state-in-effect); мікротаска розриває цей
     // синхронний ланцюжок, не міняючи фактичного моменту відправки (усе ще до наступного фарбування).
     queueMicrotask(() => void submit(initialCode));
@@ -85,72 +122,97 @@ export function TableLinkPanel({ initialCode }: { initialCode?: string }) {
     void submit(tableCode);
   };
 
+  const view = status ? STATUS_VIEW[status.status] : null;
+
   return (
-    <div className="panel">
-      <h1 style={{ marginTop: 0 }}>Прив&apos;язка до столу</h1>
-
-      {status && <p className="text-muted">{STATUS_LABEL[status.status]}</p>}
-
-      {status?.status === "CONFIRMED" && guestOrderingEnabled && (
-        <Link href="/account/table/order" className="pill pill--accent" style={{ marginTop: "1rem", display: "inline-flex" }}>
-          Замовити
-        </Link>
-      )}
-
-      {status?.status === "CONFIRMED" && (
-        <div style={{ marginTop: "1rem" }}>
-          <h2 style={{ fontSize: "1.1rem" }}>Поточний рахунок</h2>
-          {!status.receipts || status.receipts.length === 0 ? (
-            <p className="text-muted">Ще немає жодного пробитого чека на цей стіл.</p>
-          ) : (
-            <div style={{ display: "grid", gap: "0.75rem" }}>
-              {status.receipts.map((receipt) => (
-                <div key={receipt.id} className="panel">
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.25rem" }}>
-                    {receipt.items.map((item, index) => (
-                      <li key={index} style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-                        <span>
-                          {item.name}
-                          {item.quantity > 1 ? ` × ${item.quantity}` : ""}
-                        </span>
-                        <span className="text-muted">
-                          {item.price * item.quantity} {receipt.currency}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p style={{ margin: "0.5rem 0 0", textAlign: "right" }}>
-                    <strong>
-                      {receipt.totalAmount} {receipt.currency}
-                    </strong>
-                  </p>
-                </div>
-              ))}
-              <p style={{ textAlign: "right", margin: 0 }}>
-                Разом:{" "}
-                <strong style={{ color: "var(--accent-bright)" }}>
-                  {status.receipts.reduce((sum, r) => sum + r.totalAmount, 0)} {status.receipts[0].currency}
-                </strong>
-              </p>
-            </div>
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold text-foreground">Прив&apos;язка до столу</h1>
+          {view && (
+            <Chip color={view.color} variant="soft">
+              {view.chip}
+            </Chip>
           )}
         </div>
-      )}
 
-      {(!status || CAN_REQUEST.has(status.status)) && (
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.75rem" }}>
-          <input
-            placeholder="Код столу (з QR-наклейки)"
-            value={tableCode}
-            onChange={(event) => setTableCode(event.target.value)}
-            required
-          />
-          {error && <p className="text-error">{error}</p>}
-          <button type="submit" disabled={isSubmitting}>
-            Запросити прив&apos;язку
-          </button>
-        </form>
-      )}
-    </div>
+        {view ? (
+          <p className="mt-2 text-sm text-muted">{view.description}</p>
+        ) : (
+          <Skeleton className="mt-3 h-4 w-64 rounded" />
+        )}
+
+        {status?.status === "CONFIRMED" && guestOrderingEnabled && (
+          <Link
+            href="/account/table/order"
+            className={cn(
+              buttonVariants({ variant: "primary" }),
+              "mt-4 min-h-11 active:scale-[0.98]",
+            )}
+          >
+            Замовити
+          </Link>
+        )}
+
+        {status?.status === "CONFIRMED" && (
+          <div className="mt-6">
+            <h2 className="text-lg font-medium text-foreground">Поточний рахунок</h2>
+            {!status.receipts || status.receipts.length === 0 ? (
+              <AccountEmptyState
+                title="Ще немає жодного пробитого чека"
+                description="Щойно офіціант пробʼє чек на цей стіл, він зʼявиться тут"
+              />
+            ) : (
+              <div className="mt-3 grid gap-3">
+                {status.receipts.map((receipt) => (
+                  <div key={receipt.id} className="rounded-2xl border border-border bg-surface-secondary p-4">
+                    <ul className="grid gap-1.5">
+                      {receipt.items.map((item, index) => (
+                        <li key={index} className="flex items-center justify-between gap-4 text-sm">
+                          <span className="min-w-0 text-foreground">
+                            {item.name}
+                            {item.quantity > 1 ? <span className="text-muted"> × {item.quantity}</span> : ""}
+                          </span>
+                          <span className="shrink-0 text-right tabular-nums text-muted">
+                            {item.price * item.quantity} {receipt.currency}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 border-t border-separator pt-2 text-right text-sm font-semibold tabular-nums text-foreground">
+                      {receipt.totalAmount} {receipt.currency}
+                    </p>
+                  </div>
+                ))}
+                <p className="text-right text-foreground">
+                  Разом:{" "}
+                  <strong className="tabular-nums text-accent">
+                    {status.receipts.reduce((sum, r) => sum + r.totalAmount, 0)} {status.receipts[0].currency}
+                  </strong>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(!status || CAN_REQUEST.has(status.status)) && (
+          <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
+            <TextField value={tableCode} onChange={setTableCode} isRequired>
+              <Label>Код столу (з QR-наклейки)</Label>
+              <Input />
+            </TextField>
+            <Button
+              type="submit"
+              variant="primary"
+              isPending={isSubmitting}
+              className="min-h-11 active:scale-[0.98]"
+            >
+              {isSubmitting && <Spinner size="sm" color="current" />}
+              Запросити прив&apos;язку
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
   );
 }
